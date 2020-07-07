@@ -107,7 +107,7 @@ redcap_setup_server <- function(input, output, session) {
     rc_instrument_names = NULL,
     rc_meta_data = NULL,
     rc_records = NULL,
-    rc_is_connected = 'no',
+    is_connected = 'no',
     ### Configuration Variables
     temp_identifier_field = NULL,
     temp_reviewer_field = NULL,
@@ -201,7 +201,7 @@ redcap_setup_server <- function(input, output, session) {
       redcap_setup$rc_instrument_names <- redcapAPI::exportInstruments(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Instrument Names
       redcap_setup$rc_meta_data <- redcapAPI::exportMetaData(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Instrument Meta Data
       redcap_setup$rc_records <- redcapAPI::exportRecords(redcap_setup$rc_con, factors = F, labels = F) %>% dplyr::as_tibble() ### Store REDCap Records that exist upon connection to assist with configuration.
-      redcap_setup$rc_is_connected <- 'yes' ### Report REDCap is connected
+      redcap_setup$is_connected <- 'yes' ### Report REDCap is connected
       shinyjs::show('redcap_configure_div') ### Show REDCap configure GUI
     } 
   })
@@ -209,7 +209,7 @@ redcap_setup_server <- function(input, output, session) {
     if ( input$rc_connect == 0 ) return()
     redcap_setup$rc_con <- NULL ### Clear REDCap connection info
     redcap_setup$rc_project_info <- NULL ### Clear REDCap Project Information
-    redcap_setup$rc_is_connected <- 'no' ### Report REDCap is disconnected
+    redcap_setup$is_connected <- 'no' ### Report REDCap is disconnected
     shinyjs::show('redcap_connect_div') ### Show REDCap connection GUI
     shinyjs::reset('redcap_connect_div') ### Reset inputs on REDCap connection GUI
     shinyjs::hide('redcap_configure_div') ### Hide REDCap configuration GUI
