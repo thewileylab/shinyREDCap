@@ -35,13 +35,13 @@ ui <- fluidPage(
            plotOutput("distPlot")
         )
     ),
-    redcap_setup_ui('namespace'),
+    redcap_setup_ui('redcap-setup-namespace'),
     actionButton(inputId = 'stop',label = 'Pause for reflection')
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-    redcap_setup_values <- callModule(redcap_setup_server,'namespace')
+    redcap_setup_values <- callModule(redcap_setup_server,'redcap-setup-namespace')
     observeEvent(input$stop,{
         browser()
     })
