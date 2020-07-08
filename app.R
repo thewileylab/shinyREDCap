@@ -36,15 +36,15 @@ ui <- fluidPage(
         )
     ),
     actionButton(inputId = 'stop',label = 'Pause for reflection'),
-    selectInput(inputId = 'subject_id',label = 'Subject ID',choices = c('922873','922874')), ## test subject id provider
     redcap_setup_ui('redcap-setup-namespace'),
+    selectInput(inputId = 'subject_id',label = 'Subject ID',choices = c('922873','922874')), ## test subject id provider
     redcap_instrument_ui('redcap-instrument-namespace')
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     redcap_setup_values <- callModule(redcap_setup_server,'redcap-setup-namespace')
-    callModule(redcap_instrument_server, 'redcap-instrument-namespace', redcap_setup_values, input$subject_id)
+    redcap_instrument_values <- callModule(redcap_instrument_server, 'redcap-instrument-namespace', redcap_setup_values, input$subject_id)
     observeEvent(input$stop,{
         browser()
     })
