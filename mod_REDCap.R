@@ -200,9 +200,6 @@ render_redcap <- function(reviewr_type, field_name, field_label, required, choic
   }
 }
 
-
-
-
 # Datasets ----
 #' REDCap Survey Complete Tbl
 #'
@@ -224,19 +221,19 @@ redcap_setup_ui <- function(id) {
   tagList(
     useShinydashboard(),
     useShinyjs(),
-      shinydashboard::box(title = 'Connect to REDCap',
-                          width = '100%',
-                          status = 'danger',
-                          solidHeader = F,
-                          div(id=ns('redcap_connect_div'),
-                              uiOutput(ns('setup')),
-                              uiOutput(ns('setup_connect_btn')),
-                              uiOutput(ns('setup_connect_error'))
-                              ),
-                          div(id=ns('redcap_connect_success_div'),
-                              uiOutput(ns('setup_connect_success')) %>% shinycssloaders::withSpinner() 
-                              )
-                          ),
+    shinydashboard::box(title = 'Connect to REDCap',
+                        width = '100%',
+                        status = 'danger',
+                        solidHeader = F,
+                        div(id=ns('redcap_connect_div'),
+                            uiOutput(ns('setup')),
+                            uiOutput(ns('setup_connect_btn')),
+                            uiOutput(ns('setup_connect_error'))
+                            ),
+                        div(id=ns('redcap_connect_success_div'),
+                            uiOutput(ns('setup_connect_success')) %>% shinycssloaders::withSpinner() 
+                            )
+                        ),
     div(id=ns('redcap_configure_div'),
         shinydashboard::box(title = 'Configure REDCap',
                             width = '100%',
@@ -254,7 +251,20 @@ redcap_setup_ui <- function(id) {
           )
         )
     )
-  }
+}
+
+redcap_instrument_ui <- function(id) {
+  ns <- NS(id)
+  tagList(
+    useShinydashboard(),
+    useShinyjs(),
+    shinydashboard::box(title = "REDCap Instrument: Title Placeholder",
+                        width = '100%',
+                        status = 'danger',
+                        solidHeader = F
+                        )
+  )
+}
 
 # Server ----
 redcap_setup_server <- function(input, output, session) {
@@ -587,4 +597,8 @@ redcap_setup_server <- function(input, output, session) {
   })
   ## Return
   return(redcap_setup)
+}
+
+redcap_instrument_server <- function(input, output, session, redcap_vars, subject_id) {
+  ns <- session$ns
 }
