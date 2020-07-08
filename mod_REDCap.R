@@ -231,7 +231,7 @@ redcap_setup_ui <- function(id) {
                             uiOutput(ns('setup_connect_error'))
                             ),
                         div(id=ns('redcap_connect_success_div'),
-                            uiOutput(ns('setup_connect_success')) %>% shinycssloaders::withSpinner() 
+                          uiOutput(ns('setup_connect_success')) %>% shinycssloaders::withSpinner() 
                             )
                         ),
     div(id=ns('redcap_configure_div'),
@@ -246,7 +246,7 @@ redcap_setup_ui <- function(id) {
                               uiOutput(ns('rc_configure_select_btn'))
                             ),
                             div(id=ns('redcap_configured_success_div'),
-                                uiOutput(ns('rc_configured_message'))
+                                uiOutput(ns('rc_configured_message')) %>% shinycssloaders::withSpinner()
                                 )
           )
         )
@@ -264,7 +264,7 @@ redcap_instrument_ui <- function(id) {
                         solidHeader = F,
                         actionButton(inputId = ns('boop'),label = 'boop'),
                         uiOutput(ns('instrument_select')),
-                        uiOutput(ns('instrument_ui'))
+                        uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f')
                         )
   )
 }
