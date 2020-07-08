@@ -738,14 +738,14 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         )
       )
   })
-  ## Collect User Entered Instrument data ----
-    # redcap_module_inputs <- reactive({reactiveValuesToList(input)}) ### This collects all inputs in the module
-    # instrumentData <- reactive({
-    #   tibble(inputID = names(redcap_module_inputs() ),
-    #          values = unname(redcap_module_inputs() )
-    #          ) %>% 
-    #     filter(inputID %in% redcap_instrument$selected_instrument_meta$shiny_inputID) ### Limit to only instrument inputs
-    # })
+  # Collect User Entered Instrument data ----
+  redcap_module_inputs <- reactive({reactiveValuesToList(input)}) ### This collects all inputs in the module
+  instrumentData <- reactive({
+    tibble(inputID = names(redcap_module_inputs() ),
+           values = unname(redcap_module_inputs() )
+           ) %>%
+      filter(inputID %in% redcap_instrument$selected_instrument_meta$shiny_inputID) ### Limit to only instrument inputs
+  })
 
   ## REDCap Instrument UI Outputs ----
   output$instrument_select <- renderUI({ instrument_select() })
