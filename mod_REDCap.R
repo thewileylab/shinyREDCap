@@ -283,7 +283,7 @@ redcap_setup_server <- function(input, output, session) {
     rc_con = NULL,
     rc_project_info = NULL,
     rc_field_names = NULL,
-    rc_instrument_names = NULL,
+    rc_instruments_tbl = NULL,
     rc_meta_data = NULL,
     rc_records = NULL,
     is_connected = 'no',
@@ -377,7 +377,10 @@ redcap_setup_server <- function(input, output, session) {
       shinyjs::hide('redcap_connect_div') ### Hide REDCap connection GUI
       redcap_setup$rc_project_info <- redcapAPI::exportProjectInformation(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store Project Info
       redcap_setup$rc_field_names <- redcapAPI::exportFieldNames(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Field Names
-      redcap_setup$rc_instrument_names <- redcapAPI::exportInstruments(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Instrument Names
+      redcap_setup$rc_instruments_tbl <- redcapAPI::exportInstruments(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Instrument Names
+      redcap_setup$rc_instruments_list <-redcap_setup$rc_instruments_tbl %>% 
+        relocate(instrument_label, instrument_name) %>% 
+        deframe()
       redcap_setup$rc_meta_data <- redcapAPI::exportMetaData(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Instrument Meta Data
       redcap_setup$rc_records <- redcapAPI::exportRecords(redcap_setup$rc_con, factors = F, labels = F) %>% dplyr::as_tibble() ### Store REDCap Records that exist upon connection to assist with configuration.
       redcap_setup$is_connected <- 'yes' ### Report REDCap is connected
@@ -388,6 +391,11 @@ redcap_setup_server <- function(input, output, session) {
     if ( input$rc_connect == 0 ) return()
     redcap_setup$rc_con <- NULL ### Clear REDCap connection info
     redcap_setup$rc_project_info <- NULL ### Clear REDCap Project Information
+    redcap$setup$rc_field_names <- NULL
+    redcap$setup$rc_instruments_tbl <- NULL
+    redcap_setup$rc_instruments_list <- NULL
+    redcap$setup$rc_meta_data <- NULL
+    redcap$setup$rc_records <- NULL
     redcap_setup$is_connected <- 'no' ### Report REDCap is disconnected
     shinyjs::show('redcap_connect_div') ### Show REDCap connection GUI
     shinyjs::reset('redcap_connect_div') ### Reset inputs on REDCap connection GUI
@@ -608,13 +616,12 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
     browser()
   })
   instrument_select <- reactive({
-    req(redcap_vars$rc_instrument_names, redcap_vars$is_configured == 'yes')
-    selectInput(inputId = 'rc_instrument_selection',
+    req(redcap_vars$rc_instruments_list, redcap_vars$is_configured == 'yes')
+    selectInput(inputId = ns('rc_instrument_selection'),
                 label = 'Select REDCap Instrument',
-                choices = redcap_vars$rc_instrument_names %>% 
-                  pull(instrument_label)
+                choices = redcap_vars$rc_instruments_list
                 )
     })
-  output$instrument_select <- renderUI({ instrument_select() })  
-    
+  
+  output$instrument_select <- renderUI({ instrument_select() })
 }
