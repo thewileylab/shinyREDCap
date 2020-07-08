@@ -263,7 +263,8 @@ redcap_instrument_ui <- function(id) {
                         status = 'danger',
                         solidHeader = F,
                         actionButton(inputId = ns('boop'),label = 'boop'),
-                        uiOutput(ns('instrument_select'))
+                        uiOutput(ns('instrument_select')),
+                        uiOutput(ns('instrument_ui'))
                         )
   )
 }
@@ -615,6 +616,10 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   observeEvent(input$boop, {
     browser()
   })
+  ## REDCap Instrument Values ----
+  redcap_instrument <- reactiveValues(
+    selected_instrument_meta = NULL
+  )
   instrument_select <- reactive({
     req(redcap_vars$rc_instruments_list, redcap_vars$is_configured == 'yes')
     selectInput(inputId = ns('rc_instrument_selection'),
@@ -622,6 +627,56 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                 choices = redcap_vars$rc_instruments_list
                 )
     })
-  
+  observeEvent(input$rc_instrument_selection, {
+    redcap_instrument$selected_instrument_meta <- redcap_vars$rc_meta_data %>%
+      slice(-1) %>%   # We drop the first row, as it most likely is the auto-increment field used in REDCap
+      filter(str_to_lower(.data$form_name) == input$rc_instrument_selection ) %>% # Extract the instrument based on the user selection
+      rownames_to_column() %>%
+      filter(!.data$field_type %in% c('slider','calc','descriptive')) %>%
+      # If some information is not defined within REDCap, it will convert those to logical types by default.  We are
+      # assuming that they will be all character values, so we need to perform explicit casting to continue with that
+      # assumption.
+      mutate_if(is.logical, as.character) %>%
+      left_join(ReviewR::redcap_widget_map,
+                by = c('field_type' = 'redcap_field_type', 'text_validation_type_or_show_slider_number' = 'redcap_field_val')
+      ) %>%
+      unite(col = 'shiny_inputID', .data$field_name, .data$reviewr_redcap_widget_function, sep = '_', remove = F) %>%
+      mutate(section_header = coalesce(.data$section_header, ''),
+             field_note = coalesce(.data$field_note, '')
+      )
+  })
+    ## Create a Shiny tagList for each question type present in the instrument
+    rc_instrument_ui <- reactive({
+      req(redcap_instrument$selected_instrument_meta, subject_id )
+      redcap_instrument$selected_instrument_meta %>%
+        # left_join(current_subject() ) %>% #### add current subject info, if present, to the mix
+        mutate( ## mutate shiny tags/inputs
+          shiny_header = map(.data$section_header, h3),
+          shiny_field_label = case_when(is.na(.data$required_field) ~ .data$field_label,
+                                        TRUE ~ paste(.data$field_label,"<br/><font color='#FC0020'>* must provide value</font>")
+          ),
+          shiny_input = pmap(list(reviewr_type = .data$reviewr_redcap_widget_function,
+                                  field_name = ns(.data$shiny_inputID),
+                                  field_label = .data$shiny_field_label,
+                                  required = .data$required_field,
+                                  choices = .data$select_choices_or_calculations
+                                  # ,current_subject_data = .data$default_value ### Add this back
+          ),
+          render_redcap
+          ),
+          shiny_note = map(.data$field_note, tags$sub),
+          shiny_taglist = pmap(list(.data$shiny_header,
+                                    .data$shiny_input,
+                                    .data$shiny_note
+          ),
+          tagList
+          )
+        )
+    })
+
+  ## REDCap Instrument UI Outputs ----
   output$instrument_select <- renderUI({ instrument_select() })
+  output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })  
+  
+return(redcap_instrument)
 }
