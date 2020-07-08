@@ -44,7 +44,7 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     redcap_setup_values <- callModule(redcap_setup_server,'redcap-setup-namespace')
-    callModule(redcap_instrument_server, 'redcap-instrument-namespace', redcap_setup, input$subject_id)
+    callModule(redcap_instrument_server, 'redcap-instrument-namespace', redcap_setup_values, input$subject_id)
     observeEvent(input$stop,{
         browser()
     })
