@@ -258,10 +258,12 @@ redcap_instrument_ui <- function(id) {
   tagList(
     useShinydashboard(),
     useShinyjs(),
-    shinydashboard::box(title = "REDCap Instrument: Title Placeholder",
+    shinydashboard::box(title = "REDCap Instrument",
                         width = '100%',
                         status = 'danger',
-                        solidHeader = F
+                        solidHeader = F,
+                        actionButton(inputId = ns('boop'),label = 'boop'),
+                        uiOutput(ns('instrument_select'))
                         )
   )
 }
@@ -601,4 +603,18 @@ redcap_setup_server <- function(input, output, session) {
 
 redcap_instrument_server <- function(input, output, session, redcap_vars, subject_id) {
   ns <- session$ns
+  
+  observeEvent(input$boop, {
+    browser()
+  })
+  instrument_select <- reactive({
+    req(redcap_vars$rc_instrument_names, redcap_vars$is_configured == 'yes')
+    selectInput(inputId = 'rc_instrument_selection',
+                label = 'Select REDCap Instrument',
+                choices = redcap_vars$rc_instrument_names %>% 
+                  pull(instrument_label)
+                )
+    })
+  output$instrument_select <- renderUI({ instrument_select() })  
+    
 }
