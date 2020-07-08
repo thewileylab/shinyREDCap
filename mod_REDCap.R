@@ -392,11 +392,11 @@ redcap_setup_server <- function(input, output, session) {
     if ( input$rc_connect == 0 ) return()
     redcap_setup$rc_con <- NULL ### Clear REDCap connection info
     redcap_setup$rc_project_info <- NULL ### Clear REDCap Project Information
-    redcap$setup$rc_field_names <- NULL
-    redcap$setup$rc_instruments_tbl <- NULL
-    redcap_setup$rc_instruments_list <- NULL
-    redcap$setup$rc_meta_data <- NULL
-    redcap$setup$rc_records <- NULL
+    redcap_setup$rc_field_names <- NULL ### Clear REDCap Field Names
+    redcap_setup$rc_instruments_tbl <- NULL ### Clear REDCap Instruments
+    redcap_setup$rc_instruments_list <- NULL ### Clear REDCap Instruments List
+    redcap_setup$rc_meta_data <- NULL ### Clear REDCap meta data
+    redcap_setup$rc_records <- NULL ### Clear initially collected REDCap Records
     redcap_setup$is_connected <- 'no' ### Report REDCap is disconnected
     shinyjs::show('redcap_connect_div') ### Show REDCap connection GUI
     shinyjs::reset('redcap_connect_div') ### Reset inputs on REDCap connection GUI
@@ -430,7 +430,7 @@ redcap_setup_server <- function(input, output, session) {
   })
   
   observeEvent(input$rc_reviewer_field, {
-    req(input$rc_reviewer_field)
+    req(redcap_setup$is_connected == 'yes', input$rc_reviewer_field)
     redcap_setup$temp_identifier_field <- redcap_setup$rc_meta_data %>% 
       filter(.data$field_label == input$rc_identifier_field) %>% 
       pull(.data$field_name)
@@ -627,6 +627,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                 choices = redcap_vars$rc_instruments_list
                 )
     })
+  
+  ## Extract and Prep REDCap Instrument ----
   observeEvent(input$rc_instrument_selection, {
     redcap_instrument$selected_instrument_meta <- redcap_vars$rc_meta_data %>%
       slice(-1) %>%   # We drop the first row, as it most likely is the auto-increment field used in REDCap
@@ -645,33 +647,68 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
              field_note = coalesce(.data$field_note, '')
       )
   })
-    ## Create a Shiny tagList for each question type present in the instrument
-    rc_instrument_ui <- reactive({
-      req(redcap_instrument$selected_instrument_meta, subject_id )
-      redcap_instrument$selected_instrument_meta %>%
-        # left_join(current_subject() ) %>% #### add current subject info, if present, to the mix
-        mutate( ## mutate shiny tags/inputs
-          shiny_header = map(.data$section_header, h3),
-          shiny_field_label = case_when(is.na(.data$required_field) ~ .data$field_label,
-                                        TRUE ~ paste(.data$field_label,"<br/><font color='#FC0020'>* must provide value</font>")
-          ),
-          shiny_input = pmap(list(reviewr_type = .data$reviewr_redcap_widget_function,
-                                  field_name = ns(.data$shiny_inputID),
-                                  field_label = .data$shiny_field_label,
-                                  required = .data$required_field,
-                                  choices = .data$select_choices_or_calculations
-                                  # ,current_subject_data = .data$default_value ### Add this back
-          ),
-          render_redcap
-          ),
-          shiny_note = map(.data$field_note, tags$sub),
-          shiny_taglist = pmap(list(.data$shiny_header,
-                                    .data$shiny_input,
-                                    .data$shiny_note
-          ),
-          tagList
-          )
+  ## Create Default REDCap Data Structures
+  observeEvent(c(subject_id, redcap_vars$is_configured), {
+    req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
+    ### Special case, when the REDCap Instrument has no previous data
+    redcap_instrument$default_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
+      redcap_vars$rc_field_names %>% 
+        select(.data$export_field_name, .data$choice_value) %>% 
+        mutate(choice_value = map(.x = .data$choice_value, ~ NA)) %>% 
+        pivot_wider(names_from = .data$export_field_name, values_from = .data$choice_value) %>% 
+        flatten_dfr() %>% 
+        tidyr::drop_na()
+    ### Export existing Records, filtering to the subject in context  
+    } else if (redcapAPI::exportNextRecordName(redcap_vars$rc_con) != 1 & redcap_vars$requires_reviewer == 'no' ) {
+      redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F ) %>% 
+        as_tibble() %>% 
+        mutate_all(as.character) %>% 
+        mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
+        filter(!!as.name(redcap_vars$identifier_field ) == subject_id )
+    ### Export existing Records, filtering to the subject AND reviewer in context  
+    } else {
+      redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F ) %>% 
+        as_tibble() %>% 
+        mutate_all(as.character) %>% 
+        mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
+        filter(!!as.name(redcap_vars$identifier_field ) == subject_id & !!as.name(redcap_vars$reviewer_field) == redcap_vars$reviewer )
+    }
+  })
+  ## Create a Shiny tagList for each question type present in the instrument
+  rc_instrument_ui <- reactive({
+    req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta)
+    redcap_instrument$selected_instrument_meta %>%
+      # left_join(current_subject() ) %>% #### add current subject info, if present, to the mix
+      mutate( ## mutate shiny tags/inputs
+        shiny_header = map(.data$section_header, h3),
+        shiny_field_label = case_when(is.na(.data$required_field) ~ .data$field_label,
+                                      TRUE ~ paste(.data$field_label,"<br/><font color='#FC0020'>* must provide value</font>")
+        ),
+        shiny_input = pmap(list(reviewr_type = .data$reviewr_redcap_widget_function,
+                                field_name = ns(.data$shiny_inputID),
+                                field_label = .data$shiny_field_label,
+                                required = .data$required_field,
+                                choices = .data$select_choices_or_calculations
+                                # ,current_subject_data = .data$default_value ### Add this back
+        ),
+        render_redcap
+        ),
+        shiny_note = map(.data$field_note, tags$sub),
+        shiny_taglist = pmap(list(.data$shiny_header,
+                                  .data$shiny_input,
+                                  .data$shiny_note
+        ),
+        tagList
         )
+      )
+  })
+  ## Collect User Entered Instrument data ----
+    redcap_module_inputs <- reactive({reactiveValuesToList(input)}) ### This collects all inputs in the module
+    instrumentData <- reactive({
+      tibble(inputID = names(redcap_module_inputs() ),
+             values = unname(redcap_module_inputs() )
+             ) %>% 
+        filter(inputID %in% redcap_instrument$selected_instrument_meta$shiny_inputID) ### Limit to only instrument inputs
     })
 
   ## REDCap Instrument UI Outputs ----
