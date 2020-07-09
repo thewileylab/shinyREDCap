@@ -406,6 +406,7 @@ redcap_setup_server <- function(input, output, session) {
       redcap_setup$rc_records <- redcapAPI::exportRecords(redcap_setup$rc_con, factors = F, labels = F) %>% dplyr::as_tibble() ### Store REDCap Records that exist upon connection to assist with configuration.
       redcap_setup$is_connected <- 'yes' ### Report REDCap is connected
       shinyjs::show('redcap_configure_div') ### Show REDCap configure GUI
+      shinyjs::show('redcap_configuration_options_div')
     } 
   })
   observeEvent(input$rc_disconnect, { ### On REDCap disconnect
