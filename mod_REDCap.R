@@ -265,7 +265,12 @@ redcap_instrument_ui <- function(id) {
                         actionButton(inputId = ns('boop'),label = 'boop'),
                         uiOutput(ns('instrument_select')),
                         uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f')
-                        )
+                        ),
+    shinydashboard::box(title = 'Upload to REDCap',
+                        width = '100%',
+                        status = 'danger',
+                        solidHeader = F
+                      )
   )
 }
 
@@ -649,7 +654,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   })
   ## Create Default REDCap Data Structures
   observeEvent(c(subject_id(), redcap_vars$is_configured), {
-    req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
+    req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
     ### Special case, when the REDCap Instrument has no previous data
     redcap_instrument$default_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
       redcap_vars$rc_field_names %>% 
@@ -738,7 +743,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         )
       )
   })
-  # Collect User Entered Instrument data ----
+  ## Collect User Entered Instrument data ----
   redcap_module_inputs <- reactive({reactiveValuesToList(input)}) ### This collects all inputs in the module
   instrumentData <- reactive({
     tibble(inputID = names(redcap_module_inputs() ),
@@ -746,7 +751,47 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
            ) %>%
       filter(inputID %in% redcap_instrument$selected_instrument_meta$shiny_inputID) ### Limit to only instrument inputs
   })
-
+  
+  ## Process User Entered Data for REDCap Upload ----
+  # rc_uploadData <- reactive({
+  #   req(rc_instrument(), instrumentData(), rc_id() )
+  #   rc_recordID_field <- rc_recordID() %>% extract2(1)
+  #   rc_instrument() %>% 
+  #     mutate(shiny_inputID = .data$shiny_inputID) %>% ## Namespace
+  #     select(.data$shiny_inputID, .data$field_name, .data$select_choices_or_calculations) %>% ## Include select_choices_or_calculations so that all columns can be sent back to REDCap. This allows for overwriting old data with blank ''
+  #     add_row(field_name = rc_recordID() %>% flatten() %>% unlist()) %>% ## Add REDCap record ID field back into the instrument, so it can be joined with any previous data.
+  #     left_join(instrumentData(), by = c('shiny_inputID' = 'inputID')) %>% ## Join the instrument inputs with the selected instrument. This ensures inputs are collected only for the active instrument
+  #     modify_depth(2, as.character) %>% ## the input values are all lists at this moment. Dive into each list (depth = 2) and make sure that the values within the list are coded as characters
+  #     separate_rows(.data$select_choices_or_calculations, sep = '\\|') %>% ## Expand select_choices_or_calculations
+  #     mutate(select_choices_or_calculations = str_trim(.data$select_choices_or_calculations)) %>% ## Trim
+  #     separate(.data$select_choices_or_calculations, into = c('rc_val','rc_label'), sep = ',') %>% ## Separate
+  #     ## This mutate adds additional column names to hold values for checkbox questions
+  #     mutate(rc_label = str_trim(.data$rc_label), ## Trim
+  #            col_names = pmap(list(x = .data$shiny_inputID, y = .data$field_name, z = .data$rc_val ),  function(x,y,z) case_when(str_detect(string = x, pattern = 'reviewr_checkbox') ~ paste0(y, '___', z), ## Create additional column names for inputs where multiple inputs are allowed
+  #                                                                                                                                TRUE ~ y)
+  #            ),
+  #            values = pmap(list(x = .data$shiny_inputID, y = .data$rc_val, z = .data$values), function(x,y,z) case_when(str_detect(string = x, pattern = 'reviewr_checkbox') & y == z ~ '1',
+  #                                                                                                                       str_detect(string = x, pattern = 'reviewr_checkbox') & y != z ~ '',
+  #                                                                                                                       TRUE ~ z)
+  #            ),
+  #            col_names = flatten_chr(.data$col_names)
+  #     ) %>% 
+  #     select(.data$col_names, .data$values) %>% 
+  #     unnest(cols = .data$values, keep_empty = T) %>% ## in the case that all checkbox questions are de-selected, this keeps empty values, but stores them as NA. 
+  #     ## This mutate modifys values to blanks, except for the special case when the record ID is NA. We would like to trop this value, if NA.
+  #     mutate(values = map2_chr(.x = .data$col_names, .y = .data$values, ~ case_when(str_detect(string = .x,pattern = !!rc_recordID_field) & is.na(.y) ~ .y,
+  #                                                                                   is.na(.y) ~ '',
+  #                                                                                   TRUE ~ .y)
+  #     )
+  #     ) %>%  
+  #     arrange(desc(.data$values)) %>% 
+  #     distinct(.data$col_names,.keep_all = T) %>% 
+  #     tidyr::drop_na() %>% 
+  #     pivot_wider(names_from = .data$col_names, values_from = .data$values) %>% 
+  #     bind_cols(rc_id(), rc_complete() ) %>% 
+  #     select(!!rc_recordID_field, everything() ) %>% ## RedCAP API likes the record identifier in the first column
+  #     flatten_dfr()
+  # })
   ## REDCap Instrument UI Outputs ----
   output$instrument_select <- renderUI({ instrument_select() })
   output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })  
