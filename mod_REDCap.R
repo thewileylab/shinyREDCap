@@ -811,7 +811,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   ## Process User Entered Data for REDCap Upload ----
   observeEvent(instrumentData(), {
     # browser()
-    req(redcap_instrument$selected_instrument_meta) ### Wait for more instrument selection.
+    req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta) ### Wait for more instrument selection.
     redcap_instrument$current_data <- redcap_instrument$selected_instrument_meta %>%
       # mutate(shiny_inputID = .data$shiny_inputID) %>% ## Namespace
       select(.data$reviewr_redcap_widget_function, .data$field_name, .data$select_choices_or_calculations) %>% ## Include select_choices_or_calculations so that all columns can be sent back to REDCap. This allows for overwriting old data with blank ''
