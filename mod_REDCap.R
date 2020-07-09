@@ -11,12 +11,25 @@
 #' @export
 #' @importFrom redcapAPI exportProjectInformation redcapConnection
 #' @importFrom stringr str_detect regex
+#' @importFrom httr::config
 #'
+
+### REDCap API Security ----
+### It is good practice to ensure that SSL certs are verified when utilizing the REDCap API. REDCap recommends setting the 
+### 'CURLOPT_SSL_VERIFYPEER' option to TRUE to avoid potential man in the middle attacks.
+###  - https://redcap.ucdenver.edu/api/help/?content=security
+### 
+### The redcapAPI package utilizes the httr package to perform operations using the REDCap API. Configuration options can be 
+### passed directly to httr via the config option in the redcapConnection function. Here, we set 'ssl_verifypeer = 1L' to ensure
+### cert checking is enabled.
+### - https://www.rdocumentation.org/packages/redcapAPI/versions/2.3/topics/redcapConnection
+### - https://httr.r-lib.org/reference/httr_options.html
+
 redcap_connection <- function(url, token) { 
   connection_status <- tryCatch({
-    project_info <- redcapAPI::exportProjectInformation(redcapAPI::redcapConnection(url, token))
+    project_info <- redcapAPI::exportProjectInformation(redcapAPI::redcapConnection(url, token, config = httr::config( ssl_verifypeer = 1L )))
     if(nrow(project_info) == 1) {
-      return(redcapAPI::redcapConnection(url,token))
+      return(redcapAPI::redcapConnection(url,token, config = httr::config( ssl_verifypeer = 1L )))
     } else {
       return('redcap_unknown_error')
     }
