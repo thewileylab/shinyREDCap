@@ -706,45 +706,63 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
     req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
 
     redcap_instrument$previous_instrument_formatted_data <- if(nrow(redcap_instrument$previous_data ) > 0 ){
-      redcap_instrument$previous_data %>%
-        # Turn wide data from RedCAP to long, collapsing checkbox type questions along the way
-        pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
-        separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
-        mutate(checkbox_value = map2_chr(.x = .data$checkbox_value, .y = .data$value_present, ~ case_when(.y == 0 ~ '',
-                                                                                                          TRUE ~ .x)
-        )
-        ) %>%
-        select(-.data$value_present) %>% # remove value presence variable
-        pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
-        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
-    } else if(nrow(redcap_instrument$previous_data ) == 0 & redcap_vars$requires_reviewer == 'no' ) {
-      redcap_instrument$previous_data %>%
-        add_row(!!redcap_vars$identifier_field := subject_id() ) %>% # Add default data, without reviewer info, if present
-        mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
-        pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
-        separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
-        select(-.data$checkbox_value) %>% # remove checkbox value variable. Here, we know that nothing has been entered, so it is preferrable to end up with a blank character list
-        pivot_wider(names_from = .data$checkbox_questions, values_from = .data$value_present, values_fn = list(value_present = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
-        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
-    } else {
-      redcap_instrument$previous_data %>%
-      add_row(!!redcap_vars$identifier_field := subject_id(), !!redcap_vars$reviewer_field := redcap_vars$reviewer ) %>% # Add default data, with reviewer info, if present
-        mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
-        pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
-        separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
-        select(-.data$checkbox_value) %>% # remove checkbox value variable. Here, we know that nothing has been entered, so it is preferrable to end up with a blank character list
-        pivot_wider(names_from = .data$checkbox_questions, values_from = .data$value_present, values_fn = list(value_present = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
-        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
-    }
-  })
+      if(ncol(redcap_instrument$previous_data %>% select(contains('___')) ) > 0 ) {
+        redcap_instrument$previous_data %>%
+          # Turn wide data from RedCAP to long, collapsing checkbox type questions along the way
+          pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
+          separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
+          mutate(checkbox_value = map2_chr(.x = .data$checkbox_value, .y = .data$value_present, ~ case_when(.y == 0 ~ '',
+                                                                                                            TRUE ~ .x)
+                                           )
+                 ) %>%
+          select(-.data$value_present) %>% # remove value presence variable
+          pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
+          pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+        } else {
+          redcap_instrument$previous_data %>%
+            pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+          }
+      } else if(nrow(redcap_instrument$previous_data ) == 0 & redcap_vars$requires_reviewer == 'no' ) {
+        if(ncol(redcap_instrument$previous_data %>% select(contains('___')) ) > 0 ) {
+          redcap_instrument$previous_data %>%
+            add_row(!!redcap_vars$identifier_field := subject_id() ) %>% # Add default data, without reviewer info, if present
+            mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
+            pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
+            separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
+            select(-.data$checkbox_value) %>% # remove checkbox value variable. Here, we know that nothing has been entered, so it is preferrable to end up with a blank character list
+            pivot_wider(names_from = .data$checkbox_questions, values_from = .data$value_present, values_fn = list(value_present = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
+            pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+        } else {
+          redcap_instrument$previous_data %>%
+            add_row(!!redcap_vars$identifier_field := subject_id() ) %>% 
+            pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+          }
+        } else {
+          if(ncol(redcap_instrument$previous_data %>% select(contains('___')) ) > 0 ) {
+            redcap_instrument$previous_data %>%
+              add_row(!!redcap_vars$identifier_field := subject_id(), !!redcap_vars$reviewer_field := redcap_vars$reviewer ) %>% # Add default data, with reviewer info, if present
+              mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
+              pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
+              separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
+              select(-.data$checkbox_value) %>% # remove checkbox value variable. Here, we know that nothing has been entered, so it is preferrable to end up with a blank character list
+              pivot_wider(names_from = .data$checkbox_questions, values_from = .data$value_present, values_fn = list(value_present = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
+              pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+          } else {
+            redcap_instrument$previous_data %>%
+              add_row(!!redcap_vars$identifier_field := subject_id(), !!redcap_vars$reviewer_field := redcap_vars$reviewer ) %>% 
+              pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+            }
+          }
+    })
   ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id.
   observeEvent(redcap_instrument$previous_instrument_formatted_data, {
+    # browser()
     temp_redcap_record_id <- redcap_instrument$previous_instrument_formatted_data %>% 
       filter(field_name == redcap_vars$rc_record_id_field) %>% 
       rename(inputID = field_name, current_value = previous_value)
     redcap_instrument$current_record_id <- if(temp_redcap_record_id %>% unnest(current_value) %>% pull(current_value) == '') {
       tibble(inputID = redcap_vars$rc_record_id_field,
-             current_value = redcapAPI::exportNextRecordName(redcap_vars$rc_con)
+             current_value = list(redcapAPI::exportNextRecordName(redcap_vars$rc_con))
       )
     } else {
       temp_redcap_record_id
@@ -832,19 +850,25 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   
   ## Process User Entered Data to determine changes from previously entered data ----
   observeEvent(redcap_instrument$current_data, {
-    redcap_instrument$current_instrument_formatted_data <- redcap_instrument$current_data %>%
-      # Turn wide data from RedCAP to long, collapsing checkbox type questions along the way
-      pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
-      arrange(.data$checkbox_questions) %>% ## Ensure that order is correct so that list variables will have responses in the correct place.
-      separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
-      mutate(checkbox_value = map2_chr(.x = .data$checkbox_value, .y = .data$value_present, ~ case_when(.y == '' ~ '',
-                                                                                                        TRUE ~ .x)
-      )
-      ) %>%
-      select(-.data$value_present) %>% # remove value presence variable
-      pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
-      pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
-  })
+    # browser()
+    redcap_instrument$current_instrument_formatted_data <- if(ncol(redcap_instrument$current_data %>% select(contains('___')) ) > 0 ) {
+      redcap_instrument$current_data %>%
+        # Turn wide data from RedCAP to long, collapsing checkbox type questions along the way
+        pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
+        arrange(.data$checkbox_questions) %>% ## Ensure that order is correct so that list variables will have responses in the correct place.
+        separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
+        mutate(checkbox_value = map2_chr(.x = .data$checkbox_value, .y = .data$value_present, ~ case_when(.y == '' ~ '',
+                                                                                                          TRUE ~ .x)
+                                         )
+               ) %>%
+        select(-.data$value_present) %>% # remove value presence variable
+        pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
+        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+      } else {
+        redcap_instrument$current_data %>% 
+          pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+        } 
+    })
   ## REDCap Instrument UI Outputs ----
   output$instrument_select <- renderUI({ instrument_select() })
   output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })  
