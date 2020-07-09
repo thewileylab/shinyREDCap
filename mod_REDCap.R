@@ -641,8 +641,12 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   redcap_instrument <- reactiveValues(
     selected_instrument_meta = NULL,
     previous_data = NULL,
-    previous_instrument_formatted_data = NULL
+    previous_instrument_formatted_data = NULL,
+    current_record_id = NULL,
+    current_data = NULL,
+    current_instrument_formatted_data = NULL
   )
+  
   instrument_select <- reactive({
     req(redcap_vars$rc_instruments_list, redcap_vars$is_configured == 'yes')
     selectInput(inputId = ns('rc_instrument_selection'),
@@ -665,7 +669,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       left_join(ReviewR::redcap_widget_map,
                 by = c('field_type' = 'redcap_field_type', 'text_validation_type_or_show_slider_number' = 'redcap_field_val')
       ) %>%
-      unite(col = 'shiny_inputID', .data$field_name, .data$reviewr_redcap_widget_function, sep = '_', remove = F) %>%
+      # unite(col = 'shiny_inputID', .data$field_name, .data$reviewr_redcap_widget_function, sep = '_', remove = F) %>%
       mutate(section_header = coalesce(.data$section_header, ''),
              field_note = coalesce(.data$field_note, '')
       )
@@ -703,7 +707,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
 
     redcap_instrument$previous_instrument_formatted_data <- if(nrow(redcap_instrument$previous_data ) > 0 ){
       redcap_instrument$previous_data %>%
-        # Turn wide data from RedCAP to long, collapsing checkbox type quesitions along the way
+        # Turn wide data from RedCAP to long, collapsing checkbox type questions along the way
         pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
         separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
         mutate(checkbox_value = map2_chr(.x = .data$checkbox_value, .y = .data$value_present, ~ case_when(.y == 0 ~ '',
@@ -712,7 +716,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         ) %>%
         select(-.data$value_present) %>% # remove value presence variable
         pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
-        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'default_value', values_transform = list(default_value = as.list), values_ptypes = list(default_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
     } else if(nrow(redcap_instrument$previous_data ) == 0 & redcap_vars$requires_reviewer == 'no' ) {
       redcap_instrument$previous_data %>%
         add_row(!!redcap_vars$identifier_field := subject_id() ) %>% # Add default data, without reviewer info, if present
@@ -721,7 +725,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
         select(-.data$checkbox_value) %>% # remove checkbox value variable. Here, we know that nothing has been entered, so it is preferrable to end up with a blank character list
         pivot_wider(names_from = .data$checkbox_questions, values_from = .data$value_present, values_fn = list(value_present = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
-        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'default_value', values_transform = list(default_value = as.list), values_ptypes = list(default_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
     } else {
       redcap_instrument$previous_data %>%
       add_row(!!redcap_vars$identifier_field := subject_id(), !!redcap_vars$reviewer_field := redcap_vars$reviewer ) %>% # Add default data, with reviewer info, if present
@@ -730,9 +734,23 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
         select(-.data$checkbox_value) %>% # remove checkbox value variable. Here, we know that nothing has been entered, so it is preferrable to end up with a blank character list
         pivot_wider(names_from = .data$checkbox_questions, values_from = .data$value_present, values_fn = list(value_present = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
-        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'default_value', values_transform = list(default_value = as.list), values_ptypes = list(default_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
     }
   })
+  ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id.
+  observeEvent(redcap_instrument$previous_instrument_formatted_data, {
+    temp_redcap_record_id <- redcap_instrument$previous_instrument_formatted_data %>% 
+      filter(field_name == redcap_vars$rc_record_id_field) %>% 
+      rename(inputID = field_name, current_value = previous_value)
+    redcap_instrument$current_record_id <- if(temp_redcap_record_id %>% unnest(current_value) %>% pull(current_value) == '') {
+      tibble(inputID = redcap_vars$rc_record_id_field,
+             current_value = redcapAPI::exportNextRecordName(redcap_vars$rc_con)
+      )
+    } else {
+      temp_redcap_record_id
+    }
+  })
+  
   ## Create a Shiny tagList for each question type present in the instrument
   rc_instrument_ui <- reactive({
     req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta)
@@ -744,11 +762,11 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                                       TRUE ~ paste(.data$field_label,"<br/><font color='#FC0020'>* must provide value</font>")
         ),
         shiny_input = pmap(list(reviewr_type = .data$reviewr_redcap_widget_function,
-                                field_name = ns(.data$shiny_inputID),
+                                field_name = ns(.data$field_name),
                                 field_label = .data$shiny_field_label,
                                 required = .data$required_field,
                                 choices = .data$select_choices_or_calculations,
-                                current_subject_data = .data$default_value 
+                                current_subject_data = .data$previous_value 
         ),
         render_redcap
         ),
@@ -761,55 +779,72 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         )
       )
   })
-  ## Collect User Entered Instrument data ----
+  ## Collect/Process User Entered Instrument data ----
   redcap_module_inputs <- reactive({reactiveValuesToList(input)}) ### This collects all inputs in the module
   instrumentData <- reactive({
+    req(redcap_module_inputs(), redcap_instrument$current_record_id)
     tibble(inputID = names(redcap_module_inputs() ),
-           values = unname(redcap_module_inputs() )
+           current_value = unname(redcap_module_inputs() )
            ) %>%
-      filter(inputID %in% redcap_instrument$selected_instrument_meta$shiny_inputID) ### Limit to only instrument inputs
+      filter(inputID %in% redcap_instrument$selected_instrument_meta$field_name) %>%  ### Limit to only instrument inputs
+      add_row( redcap_instrument$current_record_id) ### Add REDCap Record id
   })
   
   ## Process User Entered Data for REDCap Upload ----
-  # rc_uploadData <- reactive({
-  #   req(rc_instrument(), instrumentData(), rc_id() )
-  #   rc_recordID_field <- rc_recordID() %>% extract2(1)
-  #   rc_instrument() %>% 
-  #     mutate(shiny_inputID = .data$shiny_inputID) %>% ## Namespace
-  #     select(.data$shiny_inputID, .data$field_name, .data$select_choices_or_calculations) %>% ## Include select_choices_or_calculations so that all columns can be sent back to REDCap. This allows for overwriting old data with blank ''
-  #     add_row(field_name = rc_recordID() %>% flatten() %>% unlist()) %>% ## Add REDCap record ID field back into the instrument, so it can be joined with any previous data.
-  #     left_join(instrumentData(), by = c('shiny_inputID' = 'inputID')) %>% ## Join the instrument inputs with the selected instrument. This ensures inputs are collected only for the active instrument
-  #     modify_depth(2, as.character) %>% ## the input values are all lists at this moment. Dive into each list (depth = 2) and make sure that the values within the list are coded as characters
-  #     separate_rows(.data$select_choices_or_calculations, sep = '\\|') %>% ## Expand select_choices_or_calculations
-  #     mutate(select_choices_or_calculations = str_trim(.data$select_choices_or_calculations)) %>% ## Trim
-  #     separate(.data$select_choices_or_calculations, into = c('rc_val','rc_label'), sep = ',') %>% ## Separate
-  #     ## This mutate adds additional column names to hold values for checkbox questions
-  #     mutate(rc_label = str_trim(.data$rc_label), ## Trim
-  #            col_names = pmap(list(x = .data$shiny_inputID, y = .data$field_name, z = .data$rc_val ),  function(x,y,z) case_when(str_detect(string = x, pattern = 'reviewr_checkbox') ~ paste0(y, '___', z), ## Create additional column names for inputs where multiple inputs are allowed
-  #                                                                                                                                TRUE ~ y)
-  #            ),
-  #            values = pmap(list(x = .data$shiny_inputID, y = .data$rc_val, z = .data$values), function(x,y,z) case_when(str_detect(string = x, pattern = 'reviewr_checkbox') & y == z ~ '1',
-  #                                                                                                                       str_detect(string = x, pattern = 'reviewr_checkbox') & y != z ~ '',
-  #                                                                                                                       TRUE ~ z)
-  #            ),
-  #            col_names = flatten_chr(.data$col_names)
-  #     ) %>% 
-  #     select(.data$col_names, .data$values) %>% 
-  #     unnest(cols = .data$values, keep_empty = T) %>% ## in the case that all checkbox questions are de-selected, this keeps empty values, but stores them as NA. 
-  #     ## This mutate modifys values to blanks, except for the special case when the record ID is NA. We would like to trop this value, if NA.
-  #     mutate(values = map2_chr(.x = .data$col_names, .y = .data$values, ~ case_when(str_detect(string = .x,pattern = !!rc_recordID_field) & is.na(.y) ~ .y,
-  #                                                                                   is.na(.y) ~ '',
-  #                                                                                   TRUE ~ .y)
-  #     )
-  #     ) %>%  
-  #     arrange(desc(.data$values)) %>% 
-  #     distinct(.data$col_names,.keep_all = T) %>% 
-  #     tidyr::drop_na() %>% 
-  #     pivot_wider(names_from = .data$col_names, values_from = .data$values) %>% 
-  #     bind_cols(rc_id(), rc_complete() ) %>% 
-  #     select(!!rc_recordID_field, everything() ) %>% ## RedCAP API likes the record identifier in the first column
-  #     flatten_dfr()
-  # })
+  observeEvent(instrumentData(), {
+    # browser()
+    req(redcap_instrument$selected_instrument_meta) ### Wait for more instrument selection.
+    redcap_instrument$current_data <- redcap_instrument$selected_instrument_meta %>%
+      # mutate(shiny_inputID = .data$shiny_inputID) %>% ## Namespace
+      select(.data$reviewr_redcap_widget_function, .data$field_name, .data$select_choices_or_calculations) %>% ## Include select_choices_or_calculations so that all columns can be sent back to REDCap. This allows for overwriting old data with blank ''
+      add_row(field_name = redcap_vars$rc_record_id_field) %>% ## Add REDCap record ID field back into the instrument, so it can be joined with any previous data.
+      left_join(instrumentData(), by = c('field_name' = 'inputID')) %>% ## Join the instrument inputs with the selected instrument. This ensures inputs are collected only for the active instrument
+      modify_depth(2, as.character) %>% ## the input values are all lists at this moment. Dive into each list (depth = 2) and make sure that the values within the list are coded as characters
+      separate_rows(.data$select_choices_or_calculations, sep = '\\|') %>% ## Expand select_choices_or_calculations
+      mutate(select_choices_or_calculations = str_trim(.data$select_choices_or_calculations)) %>% ## Trim
+      separate(.data$select_choices_or_calculations, into = c('rc_val','rc_label'), sep = ',') %>% ## Separate
+      ## This mutate adds additional column names to hold values for checkbox questions
+      mutate(rc_label = str_trim(.data$rc_label), ## Trim
+             inputID = pmap(list(x = .data$reviewr_redcap_widget_function, y = .data$field_name, z = .data$rc_val ),  function(x,y,z) case_when(str_detect(string = x, pattern = 'reviewr_checkbox') ~ paste0(y, '___', z), ## Create additional column names for inputs where multiple inputs are allowed
+                                                                                                                                                  TRUE ~ y)
+             ),
+             current_value = pmap(list(x = .data$reviewr_redcap_widget_function, y = .data$rc_val, z = .data$current_value), function(x,y,z) case_when(str_detect(string = x, pattern = 'reviewr_checkbox') & y == z ~ '1',
+                                                                                                                                                str_detect(string = x, pattern = 'reviewr_checkbox') & y != z ~ '',
+                                                                                                                                                TRUE ~ z)
+             ),
+             inputID = flatten_chr(.data$inputID)
+      ) %>%
+      select(.data$inputID, .data$current_value) %>%
+      unnest(cols = .data$current_value, keep_empty = T) %>% ## in the case that all checkbox questions are de-selected, this keeps empty values, but stores them as NA.
+      ## This mutate modifys values to blanks, except for the special case when the record ID is NA. We would like to trop this value, if NA.
+      mutate(current_value = map2_chr(.x = .data$inputID, .y = .data$current_value, ~ case_when(str_detect(string = .x,pattern = !!redcap_vars$rc_record_id_field) & is.na(.y) ~ .y,
+                                                                                    is.na(.y) ~ '',
+                                                                                    TRUE ~ .y)
+      )
+      ) %>%
+      arrange(desc(.data$current_value)) %>%
+      distinct(.data$inputID,.keep_all = T) %>%
+      tidyr::drop_na() %>%
+      pivot_wider(names_from = .data$inputID, values_from = .data$current_value) %>%
+      select(!!redcap_vars$rc_record_id_field, everything() ) %>% ## RedCAP API likes the record identifier in the first column
+      flatten_dfr()
+  })
+  
+  ## Process User Entered Data to determine changes from previously entered data ----
+  observeEvent(redcap_instrument$current_data, {
+    redcap_instrument$current_instrument_formatted_data <- redcap_instrument$current_data %>%
+      # Turn wide data from RedCAP to long, collapsing checkbox type questions along the way
+      pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
+      arrange(.data$checkbox_questions) %>% ## Ensure that order is correct so that list variables will have responses in the correct place.
+      separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
+      mutate(checkbox_value = map2_chr(.x = .data$checkbox_value, .y = .data$value_present, ~ case_when(.y == '' ~ '',
+                                                                                                        TRUE ~ .x)
+      )
+      ) %>%
+      select(-.data$value_present) %>% # remove value presence variable
+      pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
+      pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+  })
   ## REDCap Instrument UI Outputs ----
   output$instrument_select <- renderUI({ instrument_select() })
   output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })  
