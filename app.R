@@ -46,6 +46,8 @@ server <- function(input, output) {
     subject_id <- reactive({ input$subject_id })
     redcap_setup_values <- callModule(redcap_setup_server,'redcap-setup-namespace')
     redcap_instrument_values <- callModule(redcap_instrument_server, 'redcap-instrument-namespace', redcap_setup_values, subject_id)
+    
+    ## Create an observer that will allow you to interrupt the app to examine the return values of the modules.
     observeEvent(input$stop,{
         browser()
     })
