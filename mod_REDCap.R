@@ -283,6 +283,7 @@ redcap_instrument_ui <- function(id) {
                         width = '100%',
                         status = 'danger',
                         solidHeader = F,
+                        uiOutput(ns('instrument_status_select')),
                         uiOutput(ns('redcap_upload_btn'))
                       )
   )
@@ -950,13 +951,13 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                        class = 'cell-border strip hover'
                      )
                  })
-  
+  ## Display an Upload button if user has changed values ----
   upload_to_redcap <- reactive({
     req(nrow(redcap_instrument$data_comparison) > 0 )
     actionButton(inputId = ns('upload'),label = 'Upload to REDCap')
   })
   
-  ## Check to see if all required questions have been answered
+  ## Check to see if all required questions have been answered ----
   observeEvent(c(redcap_instrument$selected_instrument_meta_required,
                  redcap_instrument$current_instrument_formatted_data), {
                    # browser()
@@ -975,9 +976,19 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                      nrow()
                    )
                   })
+  
+  instrument_status <- reactive({
+    req(redcap_instrument$qty_required == redcap_instrument$qty_required_answered)
+    selectInput(inputId = ns('survey-complete'),
+                label = 'Instrument Status',
+                choices = ReviewR::redcap_survey_complete_tbl %>% deframe()
+                )
+  })
+  
   ## REDCap Instrument UI Outputs ----
   output$instrument_select <- renderUI({ instrument_select() })
   output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })
+  output$instrument_status_select <- renderUI({ instrument_status() })
   output$redcap_upload_btn <- renderUI({ upload_to_redcap() })
   
 return(redcap_instrument)
