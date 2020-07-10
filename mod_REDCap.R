@@ -282,7 +282,8 @@ redcap_instrument_ui <- function(id) {
     shinydashboard::box(title = 'Upload to REDCap',
                         width = '100%',
                         status = 'danger',
-                        solidHeader = F
+                        solidHeader = F,
+                        uiOutput(ns('redcap_upload_btn'))
                       )
   )
 }
@@ -653,13 +654,16 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   ## REDCap Instrument Values ----
   redcap_instrument <- reactiveValues(
     selected_instrument_meta = NULL,
+    selected_instrument_meta_required = NULL,
     previous_data = NULL,
     previous_instrument_formatted_data = NULL,
     previous_instrument_formatted_data_labels = NULL,
     current_record_id = NULL,
     current_data = NULL,
     current_instrument_formatted_data = NULL,
-    current_instrument_formatted_data_labels = NULL
+    current_instrument_formatted_data_labels = NULL,
+    data_comparison = NULL,
+    overwrite_modal = NULL
   )
   
   instrument_select <- reactive({
@@ -688,6 +692,9 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       mutate(section_header = coalesce(.data$section_header, ''),
              field_note = coalesce(.data$field_note, '')
       )
+    redcap_instrument$selected_instrument_meta_required <- redcap_instrument$selected_instrument_meta %>% 
+      select(field_name, required_field) %>% 
+      filter(required_field == 'y')
   })
   ## Create Default REDCap Data Structures
   observeEvent(c(subject_id(), redcap_vars$is_configured), {
@@ -926,10 +933,52 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                             ) %>% 
                      filter(field_name != redcap_vars$rc_record_id_field) %>% ## This will be different when entering new data
                      filter(diff == TRUE)
-                     })
+                   redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
+                   ungroup() %>% 
+                   left_join(redcap_instrument$selected_instrument_meta %>% select(field_name, field_label)) %>% 
+                   select('Question' = field_label, 'Previous Value' = previous_html, 'Current Value' = current_html) %>% 
+                   DT::datatable(
+                       extensions = list('Scroller' = NULL),
+                       options = list(scrollX = TRUE,
+                                      deferRender = TRUE,
+                                      scrollY = '450px',
+                                      scroller = TRUE,
+                                      sDom  = '<"top">lrt<"bottom">ip'
+                       ),
+                       rownames = F, 
+                       escape = F,
+                       class = 'cell-border strip hover'
+                     )
+                 })
+  
+  upload_to_redcap <- reactive({
+    req(nrow(redcap_instrument$data_comparison) > 0 )
+    actionButton(inputId = ns('upload'),label = 'Upload to REDCap')
+  })
+  
+  ## Check to see if all required questions have been answered
+  observeEvent(c(redcap_instrument$selected_instrument_meta_required,
+                 redcap_instrument$current_instrument_formatted_data), {
+                   # browser()
+                   req(redcap_instrument$current_instrument_formatted_data_labels)
+                   redcap_instrument$qty_required <- nrow(redcap_instrument$selected_instrument_meta_required)
+                   redcap_instrument$qty_required_answered <- suppressWarnings(redcap_instrument$current_instrument_formatted_data %>% 
+                     left_join(redcap_instrument$selected_instrument_meta_required) %>% 
+                     filter(required_field == 'y') %>%
+                     unnest(current_value) %>% 
+                     mutate(answered = case_when(current_value != '' ~ 1,
+                                                 TRUE ~ 0)
+                            ) %>% 
+                     group_by(field_name) %>% 
+                     summarise(answered = max(answered,na.rm = T),.groups = 'drop') %>% 
+                     filter(answered > 0 ) %>% 
+                     nrow()
+                   )
+                  })
   ## REDCap Instrument UI Outputs ----
   output$instrument_select <- renderUI({ instrument_select() })
-  output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })  
+  output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })
+  output$redcap_upload_btn <- renderUI({ upload_to_redcap() })
   
 return(redcap_instrument)
 }
