@@ -403,6 +403,17 @@ redcap_setup_server <- function(input, output, session) {
         relocate(instrument_label, instrument_name) %>% 
         deframe()
       redcap_setup$rc_meta_data <- redcapAPI::exportMetaData(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Instrument Meta Data
+      redcap_setup$rc_meta_exploded <- redcap_setup$rc_meta_data %>% 
+        select(.data$field_name, .data$field_type, .data$select_choices_or_calculations) %>% 
+        mutate(select_choices_or_calculations = case_when(.data$field_type == 'yesno' ~ '1, Yes | 0, No',
+                                                          .data$field_type == 'truefalse' ~ '1, True | 0, False',
+                                                          TRUE ~ select_choices_or_calculations
+                                                          )
+               ) %>% 
+        separate_rows(.data$select_choices_or_calculations, sep = '\\|') %>% 
+        separate(.data$select_choices_or_calculations, into = c('value','value_label'), sep = ',') %>% 
+        mutate_all(str_trim) %>% 
+        mutate_all(replace_na, replace = '')
       redcap_setup$rc_records <- redcapAPI::exportRecords(redcap_setup$rc_con, factors = F, labels = F) %>% dplyr::as_tibble() ### Store REDCap Records that exist upon connection to assist with configuration.
       redcap_setup$is_connected <- 'yes' ### Report REDCap is connected
       shinyjs::show('redcap_configure_div') ### Show REDCap configure GUI
@@ -418,6 +429,7 @@ redcap_setup_server <- function(input, output, session) {
     redcap_setup$rc_instruments_tbl <- NULL ### Clear REDCap Instruments
     redcap_setup$rc_instruments_list <- NULL ### Clear REDCap Instruments List
     redcap_setup$rc_meta_data <- NULL ### Clear REDCap meta data
+    redcap_setup$rc_meta_exploded <- NULL ### Clear the exploded REDCap meta data
     redcap_setup$rc_records <- NULL ### Clear initially collected REDCap Records
     redcap_setup$is_connected <- 'no' ### Report REDCap is disconnected
     shinyjs::show('redcap_connect_div') ### Show REDCap connection GUI
@@ -643,9 +655,11 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
     selected_instrument_meta = NULL,
     previous_data = NULL,
     previous_instrument_formatted_data = NULL,
+    previous_instrument_formatted_data_labels = NULL,
     current_record_id = NULL,
     current_data = NULL,
-    current_instrument_formatted_data = NULL
+    current_instrument_formatted_data = NULL,
+    current_instrument_formatted_data_labels = NULL
   )
   
   instrument_select <- reactive({
@@ -870,6 +884,49 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
           pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
         } 
     })
+  
+  observeEvent(c(redcap_instrument$previous_instrument_formatted_data, 
+                 redcap_instrument$current_instrument_formatted_data), {
+                   req(redcap_instrument$previous_instrument_formatted_data, redcap_instrument$current_instrument_formatted_data)
+                   redcap_instrument$previous_instrument_formatted_data_labels <- redcap_instrument$previous_instrument_formatted_data %>%
+                     unnest(previous_value) %>%
+                     left_join(redcap_vars$rc_meta_exploded,
+                               by = c('field_name' = 'field_name', 'previous_value' = 'value')
+                               ) %>% 
+                     mutate(previous_value_label = case_when(is.na(value_label) ~ previous_value,
+                                                             TRUE ~ value_label
+                                                             )
+                            ) %>% 
+                     select(-field_type, -value_label) %>% 
+                     group_by(field_name) %>% 
+                     mutate(previous_value = paste(previous_value, collapse = ','),
+                            previous_html = paste(previous_value_label, collapse = '<br><br>')) %>%
+                     distinct(previous_html, .keep_all = T)
+                   
+                 redcap_instrument$current_instrument_formatted_data_labels <- redcap_instrument$current_instrument_formatted_data %>%
+                     unnest(current_value) %>%
+                     left_join(redcap_vars$rc_meta_exploded,
+                               by = c('field_name' = 'field_name', 'current_value' = 'value')
+                               ) %>% 
+                     mutate(current_value_label = case_when(is.na(value_label) ~ current_value,
+                                                             TRUE ~ value_label
+                                                            )
+                            ) %>% 
+                     select(-field_type, -value_label) %>% 
+                     group_by(field_name) %>% 
+                     mutate(current_value = paste(current_value, collapse = ','),
+                            current_html = paste(current_value_label, collapse = '<br><br>')) %>%
+                     distinct(current_html, .keep_all = T)
+
+                   redcap_instrument$data_comparison <- redcap_instrument$previous_instrument_formatted_data_labels %>% 
+                     inner_join(redcap_instrument$current_instrument_formatted_data_labels, by = c('field_name' = 'field_name')) %>% 
+                     mutate(diff = case_when(previous_value != current_value ~ T,
+                                             TRUE ~ F
+                                             )
+                            ) %>% 
+                     filter(field_name != redcap_vars$rc_record_id_field) %>% ## This will be different when entering new data
+                     filter(diff == TRUE)
+                     })
   ## REDCap Instrument UI Outputs ----
   output$instrument_select <- renderUI({ instrument_select() })
   output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })  
