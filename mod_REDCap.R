@@ -275,7 +275,7 @@ redcap_instrument_ui <- function(id) {
                         width = '100%',
                         status = 'danger',
                         solidHeader = F,
-                        actionButton(inputId = ns('boop'),label = 'boop'),
+                        # actionButton(inputId = ns('boop'),label = 'boop'),
                         uiOutput(ns('instrument_select')),
                         uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f')
                         ),
@@ -649,7 +649,7 @@ redcap_setup_server <- function(input, output, session) {
 redcap_instrument_server <- function(input, output, session, redcap_vars, subject_id) {
   ns <- session$ns
   
-  observeEvent(input$boop, {
+  observeEvent(input$upload, {
     browser()
   })
   ## REDCap Instrument Values ----
