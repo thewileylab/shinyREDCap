@@ -650,22 +650,6 @@ redcap_setup_server <- function(input, output, session) {
 redcap_instrument_server <- function(input, output, session, redcap_vars, subject_id) {
   ns <- session$ns
   
-  observeEvent(input$upload, {
-    confirmSweetAlert(
-      session = session,
-      inputId = ns('confirm_overwrite'),
-      title = 'Warning! Overwriting existing REDCap data:',
-      text = DT::dataTableOutput(ns('redcap_overwrite')),
-      type = "warning",
-      btn_labels = c("Cancel", "Upload to REDCap"),
-      btn_colors = NULL,
-      closeOnClickOutside = FALSE,
-      showCloseButton = FALSE,
-      html = TRUE,
-      width = '100%'
-    )
-    # browser()
-  })
   ## REDCap Instrument Values ----
   redcap_instrument <- reactiveValues(
     selected_instrument_meta = NULL,
@@ -910,8 +894,12 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   observeEvent(c(redcap_instrument$previous_instrument_formatted_data, 
                  redcap_instrument$current_instrument_formatted_data), {
                    req(redcap_instrument$previous_instrument_formatted_data, redcap_instrument$current_instrument_formatted_data)
+                   ### Add labels to previous data
                    redcap_instrument$previous_instrument_formatted_data_labels <- redcap_instrument$previous_instrument_formatted_data %>%
                      unnest(previous_value) %>%
+                     mutate(is_empty = case_when(previous_value == '' ~ NA_character_,
+                                                 TRUE ~ previous_value)
+                            ) %>% 
                      left_join(redcap_vars$rc_meta_exploded,
                                by = c('field_name' = 'field_name', 'previous_value' = 'value')
                                ) %>% 
@@ -924,7 +912,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                      mutate(previous_value = paste(previous_value, collapse = ','),
                             previous_html = paste(previous_value_label, collapse = '<br><br>')) %>%
                      distinct(previous_html, .keep_all = T)
-                   
+                
+                   ### Add labels to current data  
                  redcap_instrument$current_instrument_formatted_data_labels <- redcap_instrument$current_instrument_formatted_data %>%
                      unnest(current_value) %>%
                      left_join(redcap_vars$rc_meta_exploded,
@@ -939,17 +928,18 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                      mutate(current_value = paste(current_value, collapse = ','),
                             current_html = paste(current_value_label, collapse = '<br><br>')) %>%
                      distinct(current_html, .keep_all = T)
-
-                   redcap_instrument$data_comparison <- redcap_instrument$previous_instrument_formatted_data_labels %>% 
-                     inner_join(redcap_instrument$current_instrument_formatted_data_labels, by = c('field_name' = 'field_name')) %>% 
-                     mutate(diff = case_when(previous_value != current_value ~ T,
-                                             TRUE ~ F
-                                             )
-                            ) %>% 
-                     filter(field_name != redcap_vars$rc_record_id_field) %>% ## This will be different when entering new data
-                     filter(diff == TRUE)
+                 
+                 ### Combine previous and current data to determine what, if anything, has changed   
+                 redcap_instrument$data_comparison <- redcap_instrument$previous_instrument_formatted_data_labels %>% 
+                   inner_join(redcap_instrument$current_instrument_formatted_data_labels, by = c('field_name' = 'field_name')) %>% 
+                   mutate(diff = case_when(previous_value != current_value ~ T,
+                                           TRUE ~ F
+                                           )
+                          ) %>% 
+                   filter(field_name != redcap_vars$rc_record_id_field & diff == TRUE) ## This will be different when entering new data
                    
-                   redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
+                 ### Create modal displaying changes
+                 redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
                    ungroup() %>% 
                    left_join(redcap_instrument$selected_instrument_meta %>% select(field_name, field_label)) %>% 
                    select('Question' = field_label, 'Previous Value' = previous_html, 'Current Value' = current_html) %>% 
@@ -998,6 +988,43 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                 label = 'Instrument Status',
                 choices = ReviewR::redcap_survey_complete_tbl %>% deframe()
                 )
+  })
+  
+  ## Upload Data to REDCap ---
+  ### Here, we decide what to do. 
+  observeEvent(input$upload, {
+    browser()
+    overwrite_existing <- redcap_instrument$data_comparison %>% 
+      tidyr::drop_na(is_empty) %>% ### if the previous data is empty, nothing is overwritten. Just new abstraction data!
+      nrow()
+    if(overwrite_existing > 0) {
+    ### Are we overwriting existing REDCap data? Notify the user.
+    confirmSweetAlert(
+      session = session,
+      inputId = ns('confirm_overwrite'),
+      title = 'Warning! Overwriting existing REDCap data:',
+      text = DT::dataTableOutput(ns('redcap_overwrite')),
+      type = "warning",
+      btn_labels = c("Cancel", "Upload to REDCap"),
+      btn_colors = NULL,
+      closeOnClickOutside = FALSE,
+      showCloseButton = FALSE,
+      html = TRUE
+      )
+    } else {
+      message('Uploading abstraction data to REDCap')
+      rc_uploadData <- redcap_instrument$current_data ## Add instrument complete status
+      upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
+    }
+  })
+  observeEvent(input$confirm_overwrite, {
+    if(input$confirm_overwrite == TRUE) {
+      message('Overwriting existing abstraction data in REDCap')
+      rc_uploadData <- redcap_instrument$current_data ## Add instrument complete status
+      overwrite_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
+    } else {
+      message('Canceled upload.')
+    }
   })
   
   ## REDCap Instrument UI Outputs ----
