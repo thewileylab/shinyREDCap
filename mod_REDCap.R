@@ -285,7 +285,10 @@ redcap_instrument_ui <- function(id) {
                         status = 'danger',
                         solidHeader = F,
                         uiOutput(ns('instrument_status_select')),
-                        uiOutput(ns('redcap_upload_btn'))
+                        # uiOutput(ns('redcap_upload_btn'))
+                        div(id = ns('redcap_upload_btn_div'),
+                          actionButton(inputId = ns('upload'), label = 'Upload to REDCap')
+                        )
                       )
   )
 }
@@ -695,8 +698,9 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       select(field_name, required_field) %>% 
       filter(required_field == 'y')
   })
-  ## Create Default REDCap Data Structures
-  observeEvent(c(subject_id(), redcap_vars$is_configured), {
+  ## Retrieve Previous REDCap data ----
+  observeEvent(c(subject_id(), redcap_vars$is_configured, redcap_instrument$upload_status), {
+    message('hello')
     req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
     ### Special case, when the REDCap Instrument has no previous data
     redcap_instrument$previous_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
@@ -723,6 +727,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
     }
   })
   
+  ## Format previous data to display appropriately in the Shiny representation of the REDCap Instrument ----
   observeEvent(redcap_instrument$previous_data, {
     req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
 
@@ -775,7 +780,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
             }
           }
     })
-  ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id.
+  ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id. ----
   observeEvent(redcap_instrument$previous_instrument_formatted_data, {
     # browser()
     temp_redcap_record_id <- redcap_instrument$previous_instrument_formatted_data %>% 
@@ -790,6 +795,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
     }
   })
   
+  ## Create REDCap Instrument ---- 
   ## Create a Shiny tagList for each question type present in the instrument
   rc_instrument_ui <- reactive({
     req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta)
@@ -893,10 +899,12 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   
   observeEvent(c(redcap_instrument$previous_instrument_formatted_data, 
                  redcap_instrument$current_instrument_formatted_data), {
+                   # browser()
                    req(redcap_instrument$previous_instrument_formatted_data, redcap_instrument$current_instrument_formatted_data)
                    ### Add labels to previous data
                    redcap_instrument$previous_instrument_formatted_data_labels <- redcap_instrument$previous_instrument_formatted_data %>%
                      unnest(previous_value) %>%
+                     ### This column allows us to determine if no previous data has been entered (New REDCap Record).
                      mutate(is_empty = case_when(previous_value == '' ~ NA_character_,
                                                  TRUE ~ previous_value)
                             ) %>% 
@@ -938,7 +946,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                           ) %>% 
                    filter(field_name != redcap_vars$rc_record_id_field & diff == TRUE) ## This will be different when entering new data
                    
-                 ### Create modal displaying changes
+                 ### Create modal for displaying changes
                  redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
                    ungroup() %>% 
                    left_join(redcap_instrument$selected_instrument_meta %>% select(field_name, field_label)) %>% 
@@ -956,10 +964,15 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                        class = 'cell-border strip hover'
                      )
                  })
-  ## Display an Upload button if user has changed values ----
-  upload_to_redcap <- reactive({
-    req(nrow(redcap_instrument$data_comparison) > 0 )
-    actionButton(inputId = ns('upload'),label = 'Upload to REDCap')
+  ## Display the REDCap Upload button if user has changed values ----
+  shinyjs::hide('redcap_upload_btn_div') ### Start hidden
+  observeEvent(redcap_instrument$data_comparison, {
+    req(redcap_instrument$data_comparison)
+    if(nrow(redcap_instrument$data_comparison) > 0) {
+      shinyjs::show('redcap_upload_btn_div')
+    } else {
+      shinyjs::hide('redcap_upload_btn_div')
+    }
   })
   
   ## Check to see if all required questions have been answered ----
@@ -990,9 +1003,10 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                 )
   })
   
-  ## Upload Data to REDCap ---
+  ## Upload Data to REDCap ----
   ### Here, we decide what to do. 
   observeEvent(input$upload, {
+    # browser()
     overwrite_existing <- redcap_instrument$data_comparison %>% 
       tidyr::drop_na(is_empty) %>% ### if the previous data is empty, nothing is overwritten. Just new abstraction data!
       nrow()
@@ -1012,7 +1026,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       )
     } else {
       message('Uploading abstraction data to REDCap')
-      ## Add instrument complete status
+      ## WIP Add instrument complete status to uploadData
       rc_uploadData <- redcap_instrument$current_data %>%  
       ### Only upload non-empty data. REDCap hates empty data.
       pivot_longer(cols = everything(),
@@ -1024,10 +1038,10 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         ) %>% 
         tidyr::drop_na(value) %>% 
         pivot_wider(names_from = field_name, values_from = value)
-      
-      upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
+      redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
+      redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
       ### WIP Get the rc_record_id_label field
-      upload_message <- paste('REDCap', redcap_vars$rc_record_id_field, upload_status %>% tibble::enframe(name = NULL) %>% separate(col = .data$value,into = c('id','value'), sep = '\n') %>% pull(.data$value), 'Uploaded Successfully.')
+      upload_message <- paste('REDCap', redcap_vars$rc_record_id_field, redcap_instrument$upload_status %>% tibble::enframe(name = NULL) %>% separate(col = .data$value,into = c('id','value'), sep = '\n') %>% pull(.data$value), 'Uploaded Successfully.')
       sendSweetAlert(
         session = session,
         title = "Success!!",
@@ -1053,10 +1067,10 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                ) %>% 
         tidyr::drop_na(value) %>% 
         pivot_wider(names_from = field_name, values_from = value)
-      
-      overwrite_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_overwriteData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
+      redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
+      redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_overwriteData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
       ### WIP Get the rc_record_id_label field
-      overwrite_message <- paste('REDCap', redcap_vars$rc_record_id_field, overwrite_status %>% tibble::enframe(name = NULL) %>% separate(col = .data$value,into = c('id','value'), sep = '\n') %>% pull(.data$value), 'Modified Successfully.')
+      overwrite_message <- paste('REDCap', redcap_vars$rc_record_id_field, redcap_instrument$upload_status %>% tibble::enframe(name = NULL) %>% separate(col = .data$value,into = c('id','value'), sep = '\n') %>% pull(.data$value), 'Modified Successfully.')
       sendSweetAlert(
         session = session,
         title = "Success!!",
@@ -1072,8 +1086,10 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   ## REDCap Instrument UI Outputs ----
   output$instrument_select <- renderUI({ instrument_select() })
   output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })
-  output$instrument_status_select <- renderUI({ instrument_status() })
-  output$redcap_upload_btn <- renderUI({ upload_to_redcap() })
+  output$instrument_status_select <- renderUI({ 
+    req(instrument_status() )
+    instrument_status() 
+    })
   output$redcap_overwrite <- DT::renderDataTable({ redcap_instrument$overwrite_modal })
   
 return(redcap_instrument)
