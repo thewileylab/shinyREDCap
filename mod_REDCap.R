@@ -271,6 +271,7 @@ redcap_instrument_ui <- function(id) {
   tagList(
     useShinydashboard(),
     useShinyjs(),
+    useSweetAlert(),
     shinydashboard::box(title = "REDCap Instrument",
                         width = '100%',
                         status = 'danger',
@@ -650,7 +651,20 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   ns <- session$ns
   
   observeEvent(input$upload, {
-    browser()
+    confirmSweetAlert(
+      session = session,
+      inputId = ns('confirm_overwrite'),
+      title = 'Warning! Overwriting existing REDCap data:',
+      text = DT::dataTableOutput(ns('redcap_overwrite')),
+      type = "warning",
+      btn_labels = c("Cancel", "Upload to REDCap"),
+      btn_colors = NULL,
+      closeOnClickOutside = FALSE,
+      showCloseButton = FALSE,
+      html = TRUE,
+      width = '100%'
+    )
+    # browser()
   })
   ## REDCap Instrument Values ----
   redcap_instrument <- reactiveValues(
@@ -934,6 +948,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                             ) %>% 
                      filter(field_name != redcap_vars$rc_record_id_field) %>% ## This will be different when entering new data
                      filter(diff == TRUE)
+                   
                    redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
                    ungroup() %>% 
                    left_join(redcap_instrument$selected_instrument_meta %>% select(field_name, field_label)) %>% 
@@ -990,6 +1005,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })
   output$instrument_status_select <- renderUI({ instrument_status() })
   output$redcap_upload_btn <- renderUI({ upload_to_redcap() })
+  output$redcap_overwrite <- DT::renderDataTable({ redcap_instrument$overwrite_modal })
   
 return(redcap_instrument)
 }
