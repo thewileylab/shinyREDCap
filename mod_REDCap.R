@@ -311,6 +311,7 @@ redcap_setup_server <- function(input, output, session) {
     rc_record_id_field = NULL,
     rc_instruments_tbl = NULL,
     rc_meta_data = NULL,
+    rc_record_id_label = NULL,
     rc_records = NULL,
     is_connected = 'no',
     ### Configuration Variables
@@ -403,12 +404,15 @@ redcap_setup_server <- function(input, output, session) {
       shinyjs::hide('redcap_connect_div') ### Hide REDCap connection GUI
       redcap_setup$rc_project_info <- redcapAPI::exportProjectInformation(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store Project Info
       redcap_setup$rc_field_names <- redcapAPI::exportFieldNames(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Field Names
-      redcap_setup$rc_record_id_field <- redcap_setup$rc_field_names %>% slice(1) %>% pull(export_field_name) ### Store REDCap Record ID field
+      redcap_setup$rc_record_id_field <- redcap_setup$rc_field_names %>% slice(1) %>% pull(export_field_name) ### Store REDCap Record ID field (always first field)
       redcap_setup$rc_instruments_tbl <- redcapAPI::exportInstruments(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Instrument Names
       redcap_setup$rc_instruments_list <-redcap_setup$rc_instruments_tbl %>% 
         relocate(instrument_label, instrument_name) %>% 
         deframe()
       redcap_setup$rc_meta_data <- redcapAPI::exportMetaData(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Instrument Meta Data
+      redcap_setup$rc_record_id_label <- redcap_setup$rc_meta_data %>% 
+        filter(field_name == redcap_setup$rc_record_id_field)%>% 
+        pull(field_label)
       redcap_setup$rc_meta_exploded <- redcap_setup$rc_meta_data %>% 
         select(.data$field_name, .data$field_type, .data$select_choices_or_calculations) %>% 
         mutate(select_choices_or_calculations = case_when(.data$field_type == 'yesno' ~ '1, Yes | 0, No',
@@ -435,6 +439,7 @@ redcap_setup_server <- function(input, output, session) {
     redcap_setup$rc_instruments_tbl <- NULL ### Clear REDCap Instruments
     redcap_setup$rc_instruments_list <- NULL ### Clear REDCap Instruments List
     redcap_setup$rc_meta_data <- NULL ### Clear REDCap meta data
+    redcap_setup$rc_record_id_label <- NULL ### Clear REDCap Record ID Label
     redcap_setup$rc_meta_exploded <- NULL ### Clear the exploded REDCap meta data
     redcap_setup$rc_records <- NULL ### Clear initially collected REDCap Records
     redcap_setup$is_connected <- 'no' ### Report REDCap is disconnected
@@ -665,7 +670,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
     current_instrument_formatted_data = NULL,
     current_instrument_formatted_data_labels = NULL,
     data_comparison = NULL,
-    overwrite_modal = NULL
+    overwrite_modal = NULL,
+    upload_status = NULL
   )
   
   instrument_select <- reactive({
@@ -1040,8 +1046,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         pivot_wider(names_from = field_name, values_from = value)
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
       redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
-      ### WIP Get the rc_record_id_label field
-      upload_message <- paste('REDCap', redcap_vars$rc_record_id_field, redcap_instrument$upload_status %>% tibble::enframe(name = NULL) %>% separate(col = .data$value,into = c('id','value'), sep = '\n') %>% pull(.data$value), 'Uploaded Successfully.')
+
+      upload_message <- paste('REDCap', redcap_vars$rc_record_id_label, redcap_instrument$upload_status %>% tibble::enframe(name = NULL) %>% separate(col = .data$value,into = c('id','value'), sep = '\n') %>% pull(.data$value), 'Uploaded Successfully.')
       sendSweetAlert(
         session = session,
         title = "Success!!",
@@ -1069,8 +1075,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         pivot_wider(names_from = field_name, values_from = value)
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
       redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_overwriteData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
-      ### WIP Get the rc_record_id_label field
-      overwrite_message <- paste('REDCap', redcap_vars$rc_record_id_field, redcap_instrument$upload_status %>% tibble::enframe(name = NULL) %>% separate(col = .data$value,into = c('id','value'), sep = '\n') %>% pull(.data$value), 'Modified Successfully.')
+      
+      overwrite_message <- paste('REDCap', redcap_vars$rc_record_id_label, redcap_instrument$upload_status %>% tibble::enframe(name = NULL) %>% separate(col = .data$value,into = c('id','value'), sep = '\n') %>% pull(.data$value), 'Modified Successfully.')
       sendSweetAlert(
         session = session,
         title = "Success!!",
