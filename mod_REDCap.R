@@ -1028,7 +1028,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       message('Uploading abstraction data to REDCap')
       ## WIP Add instrument complete status to uploadData
       rc_uploadData <- redcap_instrument$current_data %>%  
-      ### Only upload non-empty data. REDCap hates empty data.
+      ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
       pivot_longer(cols = everything(),
                    names_to = 'field_name',
                    values_to = 'value'
@@ -1036,7 +1036,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         mutate(value = case_when(value == '' ~ NA_character_,
                                  TRUE ~ value)
         ) %>% 
-        tidyr::drop_na(value) %>% 
+        # tidyr::drop_na(value) %>% 
         pivot_wider(names_from = field_name, values_from = value)
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
       redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
@@ -1057,7 +1057,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       message('Overwriting existing abstraction data in REDCap')
       ### WIP Add instrument complete status
       rc_overwriteData <- redcap_instrument$current_data %>% 
-        ### Only upload non-empty data. REDCap hates empty data.
+        ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
         pivot_longer(cols = everything(),
                      names_to = 'field_name',
                      values_to = 'value'
@@ -1065,7 +1065,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         mutate(value = case_when(value == '' ~ NA_character_,
                                  TRUE ~ value)
                ) %>% 
-        tidyr::drop_na(value) %>% 
+        # tidyr::drop_na(value) %>% 
         pivot_wider(names_from = field_name, values_from = value)
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
       redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_overwriteData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
