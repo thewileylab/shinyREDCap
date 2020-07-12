@@ -911,8 +911,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                    redcap_instrument$previous_instrument_formatted_data_labels <- redcap_instrument$previous_instrument_formatted_data %>%
                      unnest(previous_value) %>%
                      ### This column allows us to determine if no previous data has been entered (New REDCap Record).
-                     mutate(is_empty = case_when(previous_value == '' ~ NA_character_,
-                                                 TRUE ~ previous_value)
+                     mutate(is_empty = case_when(previous_value == '' ~ 1,
+                                                 TRUE ~ 0)
                             ) %>% 
                      left_join(redcap_vars$rc_meta_exploded,
                                by = c('field_name' = 'field_name', 'previous_value' = 'value')
@@ -923,7 +923,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                             ) %>% 
                      select(-field_type, -value_label) %>% 
                      group_by(field_name) %>% 
-                     mutate(previous_value = paste(previous_value, collapse = ','),
+                     summarise(previous_value = paste(previous_value, collapse = ','),
+                            is_empty = min(is_empty,na.rm = T),
                             previous_html = paste(previous_value_label, collapse = '<br><br>')) %>%
                      distinct(previous_html, .keep_all = T)
                 
@@ -1014,7 +1015,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   observeEvent(input$upload, {
     # browser() ### time to upload
     overwrite_existing <- redcap_instrument$data_comparison %>% 
-      tidyr::drop_na(is_empty) %>% ### if the previous data is empty, nothing is overwritten. Just new abstraction data!
+      filter(is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
       nrow()
     if(overwrite_existing > 0) {
     ### Are we overwriting existing REDCap data? Notify the user, else upload to redcap
