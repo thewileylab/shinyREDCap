@@ -287,7 +287,7 @@ redcap_instrument_ui <- function(id) {
                         uiOutput(ns('instrument_status_select')),
                         # uiOutput(ns('redcap_upload_btn'))
                         div(id = ns('instrument_status_select_div'),
-                            selectizeInput(inputId = ns('survey-complete'),
+                            selectizeInput(inputId = ns('survey_complete'),
                                            label = 'Instrument Status',
                                            choices = NULL
                                            )
@@ -749,7 +749,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
     # browser()
     redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_data %>% pull(redcap_instrument$selected_instrument_complete_field)
     updateSelectizeInput(session = session, 
-                         inputId = 'survey-complete',
+                         inputId = 'survey_complete',
                          choices = ReviewR::redcap_survey_complete_tbl %>% deframe(),
                          selected = redcap_instrument$previous_selected_instrument_complete_val,
                          server = T,
@@ -1045,7 +1045,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   ## Upload Data to REDCap ----
   ### Here, we decide what to do. 
   observeEvent(input$upload, {
-    # browser() ### time to upload
+    browser() ### time to upload
     overwrite_existing <- redcap_instrument$data_comparison %>% 
       filter(is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
       nrow()
