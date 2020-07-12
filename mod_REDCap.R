@@ -1065,7 +1065,9 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = rc_uploadData, 
                                                                redcap_uri = redcap_vars$rc_con$url,
                                                                token = redcap_vars$rc_con$token,
-                                                               verbose = F)
+                                                               verbose = F,
+                                                               config_options = httr::config( ssl_verifypeer = 1L )
+                                                               )
       
       upload_message <- paste('REDCap', redcap_vars$rc_record_id_label, redcap_instrument$upload_status$affected_ids, 'uploaded successfully.')
       sendSweetAlert(
@@ -1099,7 +1101,9 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = rc_overwriteData, 
                                                                redcap_uri = redcap_vars$rc_con$url,
                                                                token = redcap_vars$rc_con$token,
-                                                               verbose = F)
+                                                               verbose = F, 
+                                                               config_options = httr::config( ssl_verifypeer = 1L )
+                                                               )
       
       overwrite_message <- paste('REDCap', redcap_vars$rc_record_id_label, redcap_instrument$upload_status$affected_ids, 'modified successfully.')
       sendSweetAlert(
