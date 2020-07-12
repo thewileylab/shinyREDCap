@@ -1012,7 +1012,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   ## Upload Data to REDCap ----
   ### Here, we decide what to do. 
   observeEvent(input$upload, {
-    # browser()
+    # browser() ### time to upload
     overwrite_existing <- redcap_instrument$data_comparison %>% 
       tidyr::drop_na(is_empty) %>% ### if the previous data is empty, nothing is overwritten. Just new abstraction data!
       nrow()
@@ -1033,7 +1033,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
     } else {
       message('Uploading abstraction data to REDCap')
       ## WIP Add instrument complete status to uploadData
-      rc_uploadData <- redcap_instrument$current_data %>%  
+      rc_uploadData <- redcap_instrument$current_data %>%
+        # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
       ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
       pivot_longer(cols = everything(),
                    names_to = 'field_name',
@@ -1045,9 +1046,12 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         # tidyr::drop_na(value) %>% 
         pivot_wider(names_from = field_name, values_from = value)
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
-      redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
-
-      upload_message <- paste('REDCap', redcap_vars$rc_record_id_label, redcap_instrument$upload_status %>% tibble::enframe(name = NULL) %>% separate(col = .data$value,into = c('id','value'), sep = '\n') %>% pull(.data$value), 'Uploaded Successfully.')
+      # redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
+      redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = rc_uploadData, 
+                                                               redcap_uri = redcap_vars$rc_con$url,
+                                                               token = redcap_vars$rc_con$token)
+      
+      upload_message <- paste('REDCap', redcap_vars$rc_record_id_label, redcap_instrument$upload_status$affected_ids, 'uploaded successfully.')
       sendSweetAlert(
         session = session,
         title = "Success!!",
@@ -1063,6 +1067,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       message('Overwriting existing abstraction data in REDCap')
       ### WIP Add instrument complete status
       rc_overwriteData <- redcap_instrument$current_data %>% 
+        # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
         ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
         pivot_longer(cols = everything(),
                      names_to = 'field_name',
@@ -1074,9 +1079,12 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         # tidyr::drop_na(value) %>% 
         pivot_wider(names_from = field_name, values_from = value)
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
-      redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_overwriteData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
+      # redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_overwriteData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
+      redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = rc_overwriteData, 
+                                                               redcap_uri = redcap_vars$rc_con$url,
+                                                               token = redcap_vars$rc_con$token)
       
-      overwrite_message <- paste('REDCap', redcap_vars$rc_record_id_label, redcap_instrument$upload_status %>% tibble::enframe(name = NULL) %>% separate(col = .data$value,into = c('id','value'), sep = '\n') %>% pull(.data$value), 'Modified Successfully.')
+      overwrite_message <- paste('REDCap', redcap_vars$rc_record_id_label, redcap_instrument$upload_status$affected_ids, 'modified successfully.')
       sendSweetAlert(
         session = session,
         title = "Success!!",
