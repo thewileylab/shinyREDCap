@@ -286,11 +286,17 @@ redcap_instrument_ui <- function(id) {
                         solidHeader = F,
                         uiOutput(ns('instrument_status_select')),
                         # uiOutput(ns('redcap_upload_btn'))
+                        div(id = ns('instrument_status_select_div'),
+                            selectInput(inputId = ns('survey-complete'),
+                                        label = 'Instrument Status',
+                                        choices = ReviewR::redcap_survey_complete_tbl %>% deframe()
+                                        )
+                            ),
                         div(id = ns('redcap_upload_btn_div'),
-                          actionButton(inputId = ns('upload'), label = 'Upload to REDCap')
+                            actionButton(inputId = ns('upload'), label = 'Upload to REDCap')
+                            )
                         )
-                      )
-  )
+    )
 }
 
 # Server ----
@@ -926,7 +932,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                      summarise(previous_value = paste(previous_value, collapse = ','),
                                is_empty = min(is_empty,na.rm = T),
                                previous_html = paste(previous_value_label, collapse = '<br><br>'),
-                               .groups = 'drop'
+                               .groups = 'keep'
                                ) %>%
                      distinct(previous_html, .keep_all = T)
                 
@@ -976,6 +982,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   ## Display the REDCap Upload button if user has changed values ----
   shinyjs::hide('redcap_upload_btn_div') ### Start hidden
   observeEvent(redcap_instrument$data_comparison, {
+    # browser()
     req(redcap_instrument$data_comparison)
     if(nrow(redcap_instrument$data_comparison) > 0) {
       shinyjs::show('redcap_upload_btn_div')
@@ -1004,13 +1011,24 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                    )
                   })
   
-  instrument_status <- reactive({
-    req(redcap_instrument$qty_required == redcap_instrument$qty_required_answered)
-    selectInput(inputId = ns('survey-complete'),
-                label = 'Instrument Status',
-                choices = ReviewR::redcap_survey_complete_tbl %>% deframe()
-                )
+  # instrument_status <- reactive({
+  #   req(redcap_instrument$qty_required == redcap_instrument$qty_required_answered)
+  #   selectInput(inputId = ns('survey-complete'),
+  #               label = 'Instrument Status',
+  #               choices = ReviewR::redcap_survey_complete_tbl %>% deframe()
+  #               )
+  # })
+  shinyjs::hide('instrument_status_select_div')
+  observeEvent(c(redcap_instrument$qty_required, redcap_instrument$qty_required_answered), {
+    req(redcap_instrument$qty_required, redcap_instrument$qty_required_answered)
+    if(redcap_instrument$qty_required == redcap_instrument$qty_required_answered) {
+      shinyjs::show('instrument_status_select_div')
+    } else {
+      shinyjs::hide('instrument_status_select_div')
+    }
+    
   })
+  
   
   ## Upload Data to REDCap ----
   ### Here, we decide what to do. 
@@ -1103,10 +1121,6 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   ## REDCap Instrument UI Outputs ----
   output$instrument_select <- renderUI({ instrument_select() })
   output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })
-  output$instrument_status_select <- renderUI({ 
-    req(instrument_status() )
-    instrument_status() 
-    })
   output$redcap_overwrite <- DT::renderDataTable({ redcap_instrument$overwrite_modal })
   
 return(redcap_instrument)
