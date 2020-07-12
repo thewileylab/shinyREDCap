@@ -712,7 +712,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   })
   ## Retrieve Previous REDCap data ----
   observeEvent(c(subject_id(), redcap_vars$is_configured, redcap_instrument$upload_status), {
-    message('hello')
+    message('Refreshing instrument data from REDCap')
     req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
     ### Special case, when the REDCap Instrument has no previous data
     redcap_instrument$previous_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
@@ -1011,13 +1011,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                    )
                   })
   
-  # instrument_status <- reactive({
-  #   req(redcap_instrument$qty_required == redcap_instrument$qty_required_answered)
-  #   selectInput(inputId = ns('survey-complete'),
-  #               label = 'Instrument Status',
-  #               choices = ReviewR::redcap_survey_complete_tbl %>% deframe()
-  #               )
-  # })
+
   shinyjs::hide('instrument_status_select_div')
   observeEvent(c(redcap_instrument$qty_required, redcap_instrument$qty_required_answered), {
     req(redcap_instrument$qty_required, redcap_instrument$qty_required_answered)
