@@ -287,10 +287,10 @@ redcap_instrument_ui <- function(id) {
                         uiOutput(ns('instrument_status_select')),
                         # uiOutput(ns('redcap_upload_btn'))
                         div(id = ns('instrument_status_select_div'),
-                            selectInput(inputId = ns('survey-complete'),
-                                        label = 'Instrument Status',
-                                        choices = ReviewR::redcap_survey_complete_tbl %>% deframe()
-                                        )
+                            selectizeInput(inputId = ns('survey-complete'),
+                                           label = 'Instrument Status',
+                                           choices = NULL
+                                           )
                             ),
                         div(id = ns('redcap_upload_btn_div'),
                             actionButton(inputId = ns('upload'), label = 'Upload to REDCap')
@@ -667,6 +667,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   ## REDCap Instrument Values ----
   redcap_instrument <- reactiveValues(
     selected_instrument_meta = NULL,
+    selected_instrument_complete_field = NULL,
+    previous_selected_instrument_complete_val = '',
     selected_instrument_meta_required = NULL,
     previous_data = NULL,
     previous_instrument_formatted_data = NULL,
@@ -709,11 +711,13 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
     redcap_instrument$selected_instrument_meta_required <- redcap_instrument$selected_instrument_meta %>% 
       select(field_name, required_field) %>% 
       filter(required_field == 'y')
+    redcap_instrument$selected_instrument_complete_field <- glue::glue('{input$rc_instrument_selection}_complete')
   })
   ## Retrieve Previous REDCap data ----
   observeEvent(c(subject_id(), redcap_vars$is_configured, redcap_instrument$upload_status), {
     message('Refreshing instrument data from REDCap')
     req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
+    # browser()
     ### Special case, when the REDCap Instrument has no previous data
     redcap_instrument$previous_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
       redcap_vars$rc_field_names %>% 
@@ -737,6 +741,20 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
         filter(!!as.name(redcap_vars$identifier_field ) == subject_id() & !!as.name(redcap_vars$reviewer_field) == redcap_vars$reviewer )
     }
+  })
+  
+  ## REDCap Survey Complete ----
+  observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_data), {
+    req(input$rc_instrument_selection, redcap_instrument$previous_data, redcap_instrument$selected_instrument_complete_field)
+    # browser()
+    redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_data %>% pull(redcap_instrument$selected_instrument_complete_field)
+    updateSelectizeInput(session = session, 
+                         inputId = 'survey-complete',
+                         choices = ReviewR::redcap_survey_complete_tbl %>% deframe(),
+                         selected = redcap_instrument$previous_selected_instrument_complete_val,
+                         server = T,
+                         options = list(create = FALSE,
+                                        placeholder = 'Review Not Started'))
   })
   
   ## Format previous data to display appropriately in the Shiny representation of the REDCap Instrument ----
