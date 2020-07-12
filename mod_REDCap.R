@@ -906,8 +906,9 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   })
   
   ## Process User Entered Data to determine changes from previously entered data ----
-  observeEvent(redcap_instrument$current_data, {
+  observeEvent(c(redcap_instrument$current_data,input$survey_complete), {
     # browser()
+    req(input$survey_complete)
     redcap_instrument$current_instrument_formatted_data <- if(ncol(redcap_instrument$current_data %>% select(contains('___')) ) > 0 ) {
       redcap_instrument$current_data %>%
         # Turn wide data from RedCAP to long, collapsing checkbox type questions along the way
@@ -920,10 +921,12 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                ) %>%
         select(-.data$value_present) %>% # remove value presence variable
         pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
-        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) %>%  # Pivot longer, utilizing a list as the column type to avoid variable coercion
+        add_row(field_name = redcap_instrument$selected_instrument_complete_field, current_value = list(input$survey_complete))
       } else {
         redcap_instrument$current_data %>% 
-          pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
+          pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) %>%  # Pivot longer, utilizing a list as the column type to avoid variable coercion
+          add_row(field_name = redcap_instrument$selected_instrument_complete_field, current_value = list(input$survey_complete))
         } 
     })
   
@@ -1076,7 +1079,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         mutate(value = case_when(value == '' ~ NA_character_,
                                  TRUE ~ value)
         ) %>% 
-        # tidyr::drop_na(value) %>% 
+        ### Add survey complete value
+        add_row(field_name = redcap_instrument$selected_instrument_complete_field, value = input$survey_complete) %>%  
         pivot_wider(names_from = field_name, values_from = value)
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
       # redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
@@ -1112,7 +1116,8 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         mutate(value = case_when(value == '' ~ NA_character_,
                                  TRUE ~ value)
                ) %>% 
-        # tidyr::drop_na(value) %>% 
+        ### Add survey complete value
+        add_row(field_name = redcap_instrument$selected_instrument_complete_field, value = input$survey_complete) %>% 
         pivot_wider(names_from = field_name, values_from = value)
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
       # redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_overwriteData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
