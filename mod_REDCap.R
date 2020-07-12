@@ -924,8 +924,10 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                      select(-field_type, -value_label) %>% 
                      group_by(field_name) %>% 
                      summarise(previous_value = paste(previous_value, collapse = ','),
-                            is_empty = min(is_empty,na.rm = T),
-                            previous_html = paste(previous_value_label, collapse = '<br><br>')) %>%
+                               is_empty = min(is_empty,na.rm = T),
+                               previous_html = paste(previous_value_label, collapse = '<br><br>'),
+                               .groups = 'drop'
+                               ) %>%
                      distinct(previous_html, .keep_all = T)
                 
                    ### Add labels to current data  
