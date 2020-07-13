@@ -745,7 +745,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   
   ## REDCap Survey Complete ----
   observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_data), {
-    req(input$rc_instrument_selection, redcap_instrument$previous_data, redcap_instrument$selected_instrument_complete_field)
+    req(input$rc_instrument_selection, redcap_instrument$previous_data)
     # browser()
     redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_data %>% pull(redcap_instrument$selected_instrument_complete_field)
     updateSelectizeInput(session = session, 
@@ -866,7 +866,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   })
   
   ## Process User Entered Data for REDCap Upload ----
-  observeEvent(instrumentData(), {
+  observeEvent(c(instrumentData(), input$survey_complete), {
     # browser()
     req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta) ### Wait for more instrument selection.
     redcap_instrument$current_data <- redcap_instrument$selected_instrument_meta %>%
@@ -902,11 +902,13 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       tidyr::drop_na() %>%
       pivot_wider(names_from = .data$inputID, values_from = .data$current_value) %>%
       select(!!redcap_vars$rc_record_id_field, everything() ) %>% ## RedCAP API likes the record identifier in the first column
-      flatten_dfr()
+      flatten_dfr() %>% 
+      ## Add Instrument complete value
+      add_column(!!redcap_instrument$selected_instrument_complete_field := input$survey_complete)
   })
   
   ## Process User Entered Data to determine changes from previously entered data ----
-  observeEvent(c(redcap_instrument$current_data,input$survey_complete), {
+  observeEvent(c(redcap_instrument$current_data, input$survey_complete), {
     # browser()
     req(input$survey_complete)
     redcap_instrument$current_instrument_formatted_data <- if(ncol(redcap_instrument$current_data %>% select(contains('___')) ) > 0 ) {
@@ -921,12 +923,10 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                ) %>%
         select(-.data$value_present) %>% # remove value presence variable
         pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
-        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) %>%  # Pivot longer, utilizing a list as the column type to avoid variable coercion
-        add_row(field_name = redcap_instrument$selected_instrument_complete_field, current_value = list(input$survey_complete))
+        pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
       } else {
         redcap_instrument$current_data %>% 
-          pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) %>%  # Pivot longer, utilizing a list as the column type to avoid variable coercion
-          add_row(field_name = redcap_instrument$selected_instrument_complete_field, current_value = list(input$survey_complete))
+          pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
         } 
     })
   
@@ -1048,7 +1048,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   ## Upload Data to REDCap ----
   ### Here, we decide what to do. 
   observeEvent(input$upload, {
-    browser() ### time to upload
+    # browser() ### time to upload
     overwrite_existing <- redcap_instrument$data_comparison %>% 
       filter(is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
       nrow()
@@ -1072,19 +1072,24 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       rc_uploadData <- redcap_instrument$current_data %>%
         # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
       ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
-      pivot_longer(cols = everything(),
-                   names_to = 'field_name',
-                   values_to = 'value'
-      ) %>% 
+        pivot_longer(cols = everything(),
+                     names_to = 'field_name',
+                     values_to = 'value'
+                     ) %>% 
         mutate(value = case_when(value == '' ~ NA_character_,
                                  TRUE ~ value)
-        ) %>% 
-        ### Add survey complete value
-        add_row(field_name = redcap_instrument$selected_instrument_complete_field, value = input$survey_complete) %>%  
+               ) %>% 
         pivot_wider(names_from = field_name, values_from = value)
+      ## Check whether all required inputs are answered. If so, upload data as is. If not, change status to incomplete.
+      if(redcap_instrument$qty_required == redcap_instrument$qty_required_answered) {
+        redcap_instrument$upload_data <- rc_overwriteData
+      } else {
+        redcap_instrument$upload_data <- rc_overwriteData %>% 
+          mutate(!!redcap_instrument$selected_instrument_complete_field := 0)
+      }
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
       # redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
-      redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = rc_uploadData, 
+      redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = redcap_instrument$upload_data, 
                                                                redcap_uri = redcap_vars$rc_con$url,
                                                                token = redcap_vars$rc_con$token,
                                                                verbose = F,
@@ -1107,7 +1112,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
       message('Overwriting existing abstraction data in REDCap')
       ### WIP Add instrument complete status
       rc_overwriteData <- redcap_instrument$current_data %>% 
-        # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
+        # select(redcap_vars$rc_record_id_field, redcap_instrument$data_comparison$field_name) %>% ### Only upload fields that have changed.
         ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
         pivot_longer(cols = everything(),
                      names_to = 'field_name',
@@ -1116,12 +1121,17 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         mutate(value = case_when(value == '' ~ NA_character_,
                                  TRUE ~ value)
                ) %>% 
-        ### Add survey complete value
-        add_row(field_name = redcap_instrument$selected_instrument_complete_field, value = input$survey_complete) %>% 
         pivot_wider(names_from = field_name, values_from = value)
+      ## Check whether all required inputs are answered. If so, upload data as is. If not, change status to incomplete.
+      if(redcap_instrument$qty_required == redcap_instrument$qty_required_answered) {
+        redcap_instrument$overwrite_data <- rc_overwriteData
+      } else {
+        redcap_instrument$overwrite_data <- rc_overwriteData %>% 
+          mutate(!!redcap_instrument$selected_instrument_complete_field := 0)
+        }
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
       # redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_overwriteData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
-      redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = rc_overwriteData, 
+      redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = redcap_instrument$overwrite_data, 
                                                                redcap_uri = redcap_vars$rc_con$url,
                                                                token = redcap_vars$rc_con$token,
                                                                verbose = F, 
