@@ -692,6 +692,7 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
   
   ## Extract and Prep REDCap Instrument ----
   observeEvent(input$rc_instrument_selection, {
+    req(input$rc_instrument_selection)
     redcap_instrument$selected_instrument_meta <- redcap_vars$rc_meta_data %>%
       slice(-1) %>%   # We drop the first row, as it most likely is the auto-increment field used in REDCap
       filter(str_to_lower(.data$form_name) == input$rc_instrument_selection ) %>% # Extract the instrument based on the user selection
@@ -711,10 +712,12 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
     redcap_instrument$selected_instrument_meta_required <- redcap_instrument$selected_instrument_meta %>% 
       select(field_name, required_field) %>% 
       filter(required_field == 'y')
+    
     redcap_instrument$selected_instrument_complete_field <- glue::glue('{input$rc_instrument_selection}_complete')
   })
   ## Retrieve Previous REDCap data ----
   observeEvent(c(subject_id(), redcap_vars$is_configured, redcap_instrument$upload_status), {
+    req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
     message('Refreshing instrument data from REDCap')
     req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
     # browser()
@@ -741,11 +744,12 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
         filter(!!as.name(redcap_vars$identifier_field ) == subject_id() & !!as.name(redcap_vars$reviewer_field) == redcap_vars$reviewer )
     }
+    message('REDCap Refresh Complete')
   })
   
   ## REDCap Survey Complete ----
-  observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_data), {
-    req(input$rc_instrument_selection, redcap_instrument$previous_data)
+  observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_data, redcap_instrument$selected_instrument_complete_field), {
+    req(input$rc_instrument_selection, redcap_instrument$previous_data, redcap_instrument$selected_instrument_complete_field)
     # browser()
     redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_data %>% pull(redcap_instrument$selected_instrument_complete_field)
     updateSelectizeInput(session = session, 
@@ -1082,9 +1086,9 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
         pivot_wider(names_from = field_name, values_from = value)
       ## Check whether all required inputs are answered. If so, upload data as is. If not, change status to incomplete.
       if(redcap_instrument$qty_required == redcap_instrument$qty_required_answered) {
-        redcap_instrument$upload_data <- rc_overwriteData
+        redcap_instrument$upload_data <- rc_uploadData
       } else {
-        redcap_instrument$upload_data <- rc_overwriteData %>% 
+        redcap_instrument$upload_data <- rc_uploadData %>% 
           mutate(!!redcap_instrument$selected_instrument_complete_field := 0)
       }
       redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
