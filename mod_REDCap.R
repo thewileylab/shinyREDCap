@@ -990,7 +990,12 @@ redcap_instrument_server <- function(input, output, session, redcap_vars, subjec
                  redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
                    ungroup() %>% 
                    left_join(redcap_instrument$selected_instrument_meta %>% select(field_name, field_label)) %>% 
-                   select('Question' = field_label, 'Previous Value' = previous_html, 'Current Value' = current_html) %>% 
+                   select('Question' = field_label, 'Previous Value' = previous_html, 'Current Value' = current_html) %>%
+                   ## Here, we don't have a good existing data structure to label the instrument complete field, so we do some work.
+                   mutate(Question = case_when(is.na(Question) ~ redcap_instrument$selected_instrument_complete_field %>% snakecase::to_sentence_case(),
+                                               TRUE ~ Question
+                                               )
+                          ) %>% 
                    DT::datatable(
                        extensions = list('Scroller' = NULL),
                        options = list(scrollX = TRUE,
