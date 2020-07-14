@@ -482,17 +482,37 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           } else {
             message('Uploading abstraction data to REDCap')
             ## WIP Add instrument complete status to uploadData
-            rc_uploadData <- redcap_instrument$current_data %>%
-              # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
-              ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
-              pivot_longer(cols = everything(),
-                           names_to = 'field_name',
-                           values_to = 'value'
-                           ) %>% 
-              mutate(value = case_when(.data$value == '' ~ NA_character_,
-                                       TRUE ~ .data$value)
-                     ) %>% 
-              pivot_wider(names_from = .data$field_name, values_from = .data$value)
+            rc_uploadData <- if(redcap_vars$requires_reviewer == 'yes') {
+              redcap_instrument$current_data %>%
+                # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
+                ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
+                pivot_longer(cols = everything(),
+                             names_to = 'field_name',
+                             values_to = 'value'
+                             ) %>% 
+                mutate(value = case_when(.data$value == '' ~ NA_character_,
+                                         TRUE ~ .data$value)
+                       ) %>% 
+                pivot_wider(names_from = .data$field_name, values_from = .data$value) %>% 
+                ## Always ensure subject id and reviewer are uploaded when a reviewer is configured
+                mutate(!!redcap_vars$identifier_field := subject_id(),
+                       !!redcap_vars$reviewer_field := redcap_vars$reviewer
+                       )
+            } else {
+              redcap_instrument$current_data %>%
+                # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
+                ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
+                pivot_longer(cols = everything(),
+                             names_to = 'field_name',
+                             values_to = 'value'
+                             ) %>% 
+                mutate(value = case_when(.data$value == '' ~ NA_character_,
+                                         TRUE ~ .data$value)
+                       ) %>% 
+                pivot_wider(names_from = .data$field_name, values_from = .data$value) %>% 
+                ## Always ensure subject id is uploaded
+                mutate(!!redcap_vars$identifier_field := subject_id())
+              }
             ## Check whether all required inputs are answered. If so, upload data as is. If not, change status to incomplete.
             if(redcap_instrument$qty_required == redcap_instrument$qty_required_answered) {
               redcap_instrument$upload_data <- rc_uploadData
@@ -524,17 +544,37 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         if(input$confirm_overwrite == TRUE) {
           message('Overwriting existing abstraction data in REDCap')
           ### WIP Add instrument complete status
-          rc_overwriteData <- redcap_instrument$current_data %>% 
-            # select(redcap_vars$rc_record_id_field, redcap_instrument$data_comparison$field_name) %>% ### Only upload fields that have changed.
-            ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
-            pivot_longer(cols = everything(),
-                         names_to = 'field_name',
-                         values_to = 'value'
-                         ) %>% 
-            mutate(value = case_when(.data$value == '' ~ NA_character_,
-                                     TRUE ~ .data$value)
-                   ) %>% 
-            pivot_wider(names_from = .data$field_name, values_from = .data$value)
+          rc_overwriteData <- if(redcap_vars$requires_reviewer == 'yes') {
+            redcap_instrument$current_data %>% 
+              # select(redcap_vars$rc_record_id_field, redcap_instrument$data_comparison$field_name) %>% ### Only upload fields that have changed.
+              ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
+              pivot_longer(cols = everything(),
+                           names_to = 'field_name',
+                           values_to = 'value'
+                           ) %>% 
+              mutate(value = case_when(.data$value == '' ~ NA_character_,
+                                       TRUE ~ .data$value)
+                     ) %>% 
+              pivot_wider(names_from = .data$field_name, values_from = .data$value) %>% 
+              ## Always ensure subject id and reviewer are uploaded when a reviewer is configured
+              mutate(!!redcap_vars$identifier_field := subject_id(),
+                     !!redcap_vars$reviewer_field := redcap_vars$reviewer
+                     )
+            } else {
+              redcap_instrument$current_data %>%
+                # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
+                ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
+                pivot_longer(cols = everything(),
+                             names_to = 'field_name',
+                             values_to = 'value'
+                ) %>% 
+                mutate(value = case_when(.data$value == '' ~ NA_character_,
+                                         TRUE ~ .data$value)
+                ) %>% 
+                pivot_wider(names_from = .data$field_name, values_from = .data$value) %>% 
+                ## Always ensure subject id is uploaded
+                mutate(!!redcap_vars$identifier_field := subject_id())
+            }
           ## Check whether all required inputs are answered. If so, upload data as is. If not, change status to incomplete.
           if(redcap_instrument$qty_required == redcap_instrument$qty_required_answered) {
             redcap_instrument$overwrite_data <- rc_overwriteData
