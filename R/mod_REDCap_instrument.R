@@ -211,7 +211,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                   add_row(!!redcap_vars$identifier_field := subject_id(), !!redcap_vars$reviewer_field := redcap_vars$reviewer ) %>% # Add default data, with reviewer info, if present
                   mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
                   pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
-                  separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name            select(-.data$checkbox_value) %>% # remove checkbox value variable. Here, we know that nothing has been entered, so it is preferrable to end up with a blank character list
+                  separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name  
+                  select(-.data$checkbox_value) %>% # remove checkbox value variable. Here, we know that nothing has been entered, so it is preferrable to end up with a blank character list
                   pivot_wider(names_from = .data$checkbox_questions, values_from = .data$value_present, values_fn = list(value_present = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
                   pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
                 } else {
@@ -460,7 +461,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       ## Upload Data to REDCap ----
       ### Here, we decide what to do. 
       observeEvent(input$upload, {
-        # browser() ### Pause before upload. Evaluate your life choices up until this point.
+        browser() ### Pause before upload. Evaluate your life choices up until this point.
         overwrite_existing <- redcap_instrument$data_comparison %>% 
           filter(.data$is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
           nrow()
