@@ -461,7 +461,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       ## Upload Data to REDCap ----
       ### Here, we decide what to do. 
       observeEvent(input$upload, {
-        browser() ### Pause before upload. Evaluate your life choices up until this point.
+        # browser() ### Pause before upload. Evaluate your life choices up until this point.
         overwrite_existing <- redcap_instrument$data_comparison %>% 
           filter(.data$is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
           nrow()
