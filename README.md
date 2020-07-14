@@ -36,25 +36,22 @@ placed in your Shiny application’s ui and server functions.
 library(shiny)
 library(shinyREDCap)
 ui <- fluidPage(
-
-  tags$h2("Setup REDCap Instrument"),
-
-  # Call the setup UI function
-  redcap_setup_ui(id = 'setup_namespace'),
-  
-  tags$h2("Interact with REDCap Project Instruments"),
-  
-  tags$h3("Select a patient from the list"),
-  
-  # Create a subject ID selector. This can come from anywhere, 
-  selectInput(inputId = 'subject_id',label = 'Subject ID',choices = c('1','2', '3','4','5','6')),
-
-  # Call the redcap instrument UI function
-  redcap_instrument_ui(id = 'instrument_namespace')
-)
+    column(width = 6,
+           tags$h2("Setup REDCap Instrument"),
+           # Call the setup UI function
+           redcap_setup_ui(id = 'setup_namespace')
+           ),
+    column(width = 6,
+           tags$h2("Interact with REDCap Project Instruments"),
+           tags$h3("Select a patient from the list"),
+           # Create a subject ID selector. This can come from anywhere, 
+           selectInput(inputId = 'subject_id',label = 'Subject ID',choices = c('922873','922874', '922875','922876','922877','922878')),
+           # Call the redcap instrument UI function
+           redcap_instrument_ui(id = 'instrument_namespace')
+           )
+  )
 
 server <- function(input, output, session) {
-  
   # Call the setup server function
   setup_vars <- redcap_setup_server(id = 'setup_namespace')
   
@@ -62,7 +59,6 @@ server <- function(input, output, session) {
   subject_id <- reactive({ input$subject_id }) ## Pass to instrument function
   # Call the instrument server function
   instrurment_vars <- redcap_instrument_server(id = 'instrument_namespace', setup_vars, subject_id )
-
 }
 
 if (interactive())
