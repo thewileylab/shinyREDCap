@@ -66,8 +66,13 @@ if (interactive())
   shinyApp(ui = ui, server = server)
 ```
 
+## Disclaimer
+This is a work in progress and thus there are no guarantees of functionality or accuracy. Use at your own risk.
 
+## Getting help
+
+If you encounter bugs, errors, issues or other general unpleasantness, please let us know on [GitHub](https://github.com/thewileylab/shinyREDCap/issues).
 
 ## Code of Conduct
 
-Please note that the shinyREDCap project is released with a [Contributor Code of Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html). By contributing to this project, you agree to abide by its terms.
+Please note that the 'shinyREDCap' project is released with a [Contributor Code of Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html). By contributing to this project, you agree to abide by its terms.
