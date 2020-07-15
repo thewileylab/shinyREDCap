@@ -7,7 +7,7 @@
 #' @export
 #' 
 #' @importFrom shinyWidgets useShinydashboard useSweetAlert
-#' @importFrom shinyjs useShinyjs
+#' @importFrom shinyjs useShinyjs hidden
 #' @importFrom shinydashboard box
 #' @importFrom shinycssloaders withSpinner
 #'
