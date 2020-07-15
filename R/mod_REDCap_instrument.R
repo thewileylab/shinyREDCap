@@ -54,7 +54,7 @@ redcap_instrument_ui <- function(id) {
 #' @return REDCap records from the currently selected project
 #' @export
 #' 
-#' @importFrom dplyr arrange coalesce contains desc slice filter mutate mutate_if mutate_all left_join inner_join select as_tibble pull rename case_when distinct summarise group_by ungroup everything
+#' @importFrom dplyr arrange as_tibble case_when coalesce contains desc distinct everything filter group_by inner_join left_join mutate mutate_all mutate_if pull rename select slice summarise ungroup
 #' @importFrom DT datatable
 #' @importFrom glue glue
 #' @importFrom httr config
@@ -173,7 +173,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         })
       
       ## Process Previous Data ----
-      ## Format previous data to display appropriately in the Shiny representation of the REDCap Instrument
+      ### Format previous data to display appropriately in the Shiny representation of the REDCap Instrument
       observeEvent(redcap_instrument$previous_data, {
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
         
@@ -531,7 +531,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                   mutate(!!redcap_instrument$selected_instrument_complete_field := 0)
                 }
             redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
-            # redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_uploadData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
             redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = redcap_instrument$upload_data, 
                                                                      redcap_uri = redcap_vars$rc_con$url,
                                                                      token = redcap_vars$rc_con$token,
@@ -593,7 +592,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                 mutate(!!redcap_instrument$selected_instrument_complete_field := 0)
               }
           redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
-          # redcap_instrument$upload_status <- redcapAPI::importRecords(rcon = redcap_vars$rc_con, data = rc_overwriteData, overwriteBehavior = 'overwrite', returnContent = 'ids' )
           redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = redcap_instrument$overwrite_data, 
                                                                    redcap_uri = redcap_vars$rc_con$url,
                                                                    token = redcap_vars$rc_con$token,
@@ -617,6 +615,9 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       output$instrument_select <- renderUI({ instrument_select() })
       output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })
       output$redcap_overwrite <- DT::renderDataTable({ redcap_instrument$overwrite_modal })
+      
+      ## Cleanup ----
+      
       
       return(redcap_instrument)
       }
