@@ -448,8 +448,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                                                       nrow()
                                                                     )
         })
-      
-      shinyjs::hide('instrument_status_select_div')
+      ## Display the REDCap Form Status button if all required responses have been entered ----
+      shinyjs::hide('instrument_status_select_div') ### Start hidden
       observeEvent(c(redcap_instrument$qty_required, redcap_instrument$qty_required_answered), {
         req(redcap_instrument$qty_required, redcap_instrument$qty_required_answered)
         if(redcap_instrument$qty_required == redcap_instrument$qty_required_answered) {
