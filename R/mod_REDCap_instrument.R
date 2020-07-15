@@ -105,24 +105,24 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       observeEvent(input$rc_instrument_selection, {
         req(input$rc_instrument_selection)
         redcap_instrument$selected_instrument_meta <- redcap_vars$rc_meta_data %>%
-          slice(-1) %>%   # We drop the first row, as it most likely is the auto-increment field used in REDCap
+          slice(-1) %>%   ### We drop the first row, as it most likely is the auto-increment field used in REDCap
           filter(str_to_lower(.data$form_name) == input$rc_instrument_selection ) %>% # Extract the instrument based on the user selection
           rownames_to_column() %>%
           filter(!.data$field_type %in% c('slider','calc','descriptive')) %>%
-          # If some information is not defined within REDCap, it will convert those to logical types by default.  We are
-          # assuming that they will be all character values, so we need to perform explicit casting to continue with that
-          # assumption.
+          ### If some information is not defined within REDCap, it will convert those to logical types by default.  We are
+          ### assuming that they will be all character values, so we need to perform explicit casting to continue with that
+          ### assumption.
           mutate_if(is.logical, as.character) %>%
           left_join(shinyREDCap::redcap_widget_map,
                     by = c('field_type' = 'redcap_field_type', 'text_validation_type_or_show_slider_number' = 'redcap_field_val')
                     ) %>%
-          # unite(col = 'shiny_inputID', .data$field_name, .data$reviewr_redcap_widget_function, sep = '_', remove = F) %>%
           mutate(section_header = coalesce(.data$section_header, ''),
                  field_note = coalesce(.data$field_note, '')
                  )
         redcap_instrument$selected_instrument_meta_required <- redcap_instrument$selected_instrument_meta %>% 
           select(.data$field_name, .data$required_field) %>% 
           filter(.data$required_field == 'y')
+        ### Create the Instrument Complete field
         redcap_instrument$selected_instrument_complete_field <- glue::glue('{input$rc_instrument_selection}_complete')
         })
       
@@ -130,7 +130,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       observeEvent(c(subject_id(), redcap_vars$is_configured, redcap_instrument$upload_status), {
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
         message('Refreshing instrument data from REDCap')
-        # browser()
+        browser()
         redcap_instrument$upload_status <- NULL ## Clear previous upload status.
         ### Special case, when the REDCap Instrument has no previous data
         redcap_instrument$previous_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
@@ -156,21 +156,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                 filter(!!as.name(redcap_vars$identifier_field ) == subject_id() & !!as.name(redcap_vars$reviewer_field) == redcap_vars$reviewer )
               }
         message('REDCap Refresh Complete')
-        })
-  
-      ## REDCap Survey Complete ----
-      observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_data, redcap_instrument$selected_instrument_complete_field), {
-        req(input$rc_instrument_selection, redcap_instrument$previous_data, redcap_instrument$selected_instrument_complete_field)
-        # browser()
-        redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_data %>% 
-          pull(redcap_instrument$selected_instrument_complete_field)
-        updateSelectizeInput(session = session, 
-                             inputId = 'survey_complete',
-                             choices = shinyREDCap::redcap_survey_complete %>% deframe(),
-                             selected = redcap_instrument$previous_selected_instrument_complete_val,
-                             server = T,
-                             options = list(create = FALSE,
-                                            placeholder = 'Review Not Started'))
         })
       
       ## Process Previous Data ----
@@ -458,7 +443,21 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                                                     )
         })
       
-      ## Form Complete ----
+      ## REDCap Survey Complete ----
+      observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_data, redcap_instrument$selected_instrument_complete_field), {
+        req(input$rc_instrument_selection, redcap_instrument$previous_data, redcap_instrument$selected_instrument_complete_field)
+        # browser()
+        redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_data %>% 
+          pull(redcap_instrument$selected_instrument_complete_field)
+        updateSelectizeInput(session = session, 
+                             inputId = 'survey_complete',
+                             choices = shinyREDCap::redcap_survey_complete %>% deframe(),
+                             selected = redcap_instrument$previous_selected_instrument_complete_val,
+                             server = T,
+                             options = list(create = FALSE,
+                                            placeholder = 'Review Not Started'))
+      })
+      
       ## Display the REDCap Form Status button if all required responses have been entered
       observeEvent(c(redcap_instrument$qty_required, redcap_instrument$qty_required_answered), {
         req(redcap_instrument$qty_required, redcap_instrument$qty_required_answered)
