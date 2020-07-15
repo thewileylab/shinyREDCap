@@ -73,9 +73,7 @@ redcap_setup_server <- function(id) {
     id,
     function(input, output, session) {
       ns <- session$ns
-      ## Start these divs in a hidden state
-      # shinyjs::hide('redcap_configure_div')
-      shinyjs::hide('redcap_configured_success_div')
+      
       ## REDCap Setup Values ----
       redcap_setup <- reactiveValues(
         ### Module Info

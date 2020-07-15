@@ -29,15 +29,17 @@ redcap_instrument_ui <- function(id) {
                         status = 'danger',
                         solidHeader = F,
                         uiOutput(ns('instrument_status_select')),
-                        div(id = ns('instrument_status_select_div'),
-                            selectizeInput(inputId = ns('survey_complete'),
-                                           label = 'Instrument Status',
-                                           choices = NULL
-                                           )
-                            ),
-                        div(id = ns('redcap_upload_btn_div'),
-                            actionButton(inputId = ns('upload'), label = 'Upload to REDCap')
-                            )
+                        shinyjs::hidden(
+                          div(id = ns('instrument_status_select_div'),
+                              selectizeInput(inputId = ns('survey_complete'),
+                                             label = 'Instrument Status',
+                                             choices = NULL
+                                             )
+                              ),
+                          div(id = ns('redcap_upload_btn_div'),
+                              actionButton(inputId = ns('upload'), label = 'Upload to REDCap')
+                              )
+                        )
                         )
     )
 }
@@ -419,7 +421,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         })
       
       ## Display the REDCap Upload button if user has changed values ----
-      shinyjs::hide('redcap_upload_btn_div') ### Start hidden
       observeEvent(redcap_instrument$data_comparison, {
         # browser()
         req(redcap_instrument$data_comparison)
@@ -449,7 +450,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                                                     )
         })
       ## Display the REDCap Form Status button if all required responses have been entered ----
-      shinyjs::hide('instrument_status_select_div') ### Start hidden
       observeEvent(c(redcap_instrument$qty_required, redcap_instrument$qty_required_answered), {
         req(redcap_instrument$qty_required, redcap_instrument$qty_required_answered)
         if(redcap_instrument$qty_required == redcap_instrument$qty_required_answered) {
