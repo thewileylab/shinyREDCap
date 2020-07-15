@@ -172,7 +172,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                             placeholder = 'Review Not Started'))
         })
       
-      ## Format previous data to display appropriately in the Shiny representation of the REDCap Instrument ----
+      ## Process Previous Data ----
+      ## Format previous data to display appropriately in the Shiny representation of the REDCap Instrument
       observeEvent(redcap_instrument$previous_data, {
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
         
@@ -226,7 +227,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
               }
         })
       
-      ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id. ----
+      ## REDCap Record ID ----
+      ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id.
       observeEvent(redcap_instrument$previous_instrument_formatted_data, {
         # browser()
         temp_redcap_record_id <- redcap_instrument$previous_instrument_formatted_data %>% 
@@ -270,7 +272,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             )
         })
       
-       ## Collect/Process User Entered Instrument data ----
+      ## Collect Instrument data ----
+      ### Relatively extract data from the selected REDCap instrument inputs as they are entered by the user.
       redcap_module_inputs <- reactive({reactiveValuesToList(input)}) ### This collects all inputs in the module
       instrumentData <- reactive({
         req(redcap_module_inputs(), redcap_instrument$current_record_id)
@@ -281,7 +284,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           add_row(redcap_instrument$current_record_id) ### Add REDCap Record id
         })
       
-      ## Process User Entered Data for REDCap Upload ----
+      ## Process Instrument Data ----
+      ## Process User Entered Data for REDCap Upload
       observeEvent(c(instrumentData(), input$survey_complete), {
         # browser()
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta) ### Wait for more instrument selection.
@@ -322,7 +326,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           add_column(!!redcap_instrument$selected_instrument_complete_field := input$survey_complete)
         })
       
-      ## Determine Changes from previously entered data ----
+      ## Changes from Previous Data ----
+      ## Determine Changes from previously entered data
       observeEvent(c(redcap_instrument$current_data, input$survey_complete), {
         # browser()
         req(input$survey_complete)
@@ -420,7 +425,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             )
         })
       
-      ## Display the REDCap Upload button if user has changed values ----
+      ## REDCap Upload Button ----
+      ### Display the REDCap Upload button if user has changed values
       observeEvent(redcap_instrument$data_comparison, {
         # browser()
         req(redcap_instrument$data_comparison)
@@ -431,7 +437,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             }
         })
       
-      ## Check to see if all required questions have been answered ----
+      ## Required Responses ----
+      ## Check to see if all required questions have been answered
       observeEvent(c(redcap_instrument$selected_instrument_meta_required, redcap_instrument$current_instrument_formatted_data), {
         # browser()
         req(redcap_instrument$current_instrument_formatted_data_labels)
@@ -449,7 +456,9 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                                                       nrow()
                                                                     )
         })
-      ## Display the REDCap Form Status button if all required responses have been entered ----
+      
+      ## Form Complete ----
+      ## Display the REDCap Form Status button if all required responses have been entered
       observeEvent(c(redcap_instrument$qty_required, redcap_instrument$qty_required_answered), {
         req(redcap_instrument$qty_required, redcap_instrument$qty_required_answered)
         if(redcap_instrument$qty_required == redcap_instrument$qty_required_answered) {
