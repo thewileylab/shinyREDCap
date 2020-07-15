@@ -22,7 +22,7 @@ redcap_instrument_ui <- function(id) {
                         status = 'danger',
                         solidHeader = F,
                         uiOutput(ns('instrument_select')),
-                        uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f')
+                        uiOutput(ns('instrument_ui')) 
                         ),
     shinydashboard::box(title = 'Upload to REDCap',
                         width = '100%',
@@ -169,6 +169,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                              options = list(create = FALSE,
                                             placeholder = 'Review Not Started'))
         })
+      
       ## Format previous data to display appropriately in the Shiny representation of the REDCap Instrument ----
       observeEvent(redcap_instrument$previous_data, {
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
@@ -447,8 +448,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                                                       nrow()
                                                                     )
         })
-      shinyjs::hide('instrument_status_select_div')
       
+      shinyjs::hide('instrument_status_select_div')
       observeEvent(c(redcap_instrument$qty_required, redcap_instrument$qty_required_answered), {
         req(redcap_instrument$qty_required, redcap_instrument$qty_required_answered)
         if(redcap_instrument$qty_required == redcap_instrument$qty_required_answered) {
