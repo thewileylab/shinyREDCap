@@ -22,7 +22,7 @@ redcap_instrument_ui <- function(id) {
                         status = 'danger',
                         solidHeader = F,
                         uiOutput(ns('instrument_select')),
-                        uiOutput(ns('instrument_ui')) 
+                        uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f') 
                         ),
     shinydashboard::box(title = 'Upload to REDCap',
                         width = '100%',
@@ -131,6 +131,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
         message('Refreshing instrument data from REDCap')
         # browser()
+        redcap_instrument$previous_data <- NULL ## Clear old data before retrieving new data
         ### Special case, when the REDCap Instrument has no previous data
         redcap_instrument$previous_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
           redcap_vars$rc_field_names %>% 
