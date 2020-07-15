@@ -131,7 +131,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
         message('Refreshing instrument data from REDCap')
         # browser()
-        redcap_instrument$previous_data <- NULL ## Clear old data before retrieving new data
+        redcap_instrument$upload_status <- NULL ## Clear previous upload status.
         ### Special case, when the REDCap Instrument has no previous data
         redcap_instrument$previous_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
           redcap_vars$rc_field_names %>% 
@@ -531,7 +531,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                 redcap_instrument$upload_data <- rc_uploadData %>% 
                   mutate(!!redcap_instrument$selected_instrument_complete_field := 0)
                 }
-            redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
             redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = redcap_instrument$upload_data, 
                                                                      redcap_uri = redcap_vars$rc_con$url,
                                                                      token = redcap_vars$rc_con$token,
@@ -546,6 +545,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
               btn_labels = NA,
               type = "success"
             )
+            redcap_instrument$previous_data <- NULL ## Clear old data 
             }
         })
       
@@ -592,7 +592,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
               redcap_instrument$overwrite_data <- rc_overwriteData %>% 
                 mutate(!!redcap_instrument$selected_instrument_complete_field := 0)
               }
-          redcap_instrument$upload_status <- NULL ## Clear previous upload status, then upload new data
           redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = redcap_instrument$overwrite_data, 
                                                                    redcap_uri = redcap_vars$rc_con$url,
                                                                    token = redcap_vars$rc_con$token,
@@ -607,6 +606,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             btn_labels = NA,
             type = "info"
             )
+          redcap_instrument$previous_data <- NULL ## Clear old data 
           } else {
             message('Canceled upload.')
             }
