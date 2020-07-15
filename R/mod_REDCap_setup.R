@@ -29,21 +29,23 @@ redcap_setup_ui <- function(id) {
                             uiOutput(ns('setup_connect_success')) %>% shinycssloaders::withSpinner() 
                         )
     ),
-    div(id=ns('redcap_configure_div'),
-        shinydashboard::box(title = 'Configure REDCap',
-                            width = '100%',
-                            status = 'danger',
-                            solidHeader = F,
-                            div(id=ns('redcap_configuration_options_div'),
-                                uiOutput(ns('rc_configure_identifier')),
-                                uiOutput(ns('rc_configure_reviewer')),
-                                uiOutput(ns('rc_configure_select_reviewer')),
-                                uiOutput(ns('rc_configure_select_btn'))
-                            ),
-                            div(id=ns('redcap_configured_success_div'),
-                                uiOutput(ns('rc_configured_message')) %>% shinycssloaders::withSpinner()
-                            )
-        )
+    shinyjs::hidden(
+      div(id=ns('redcap_configure_div'),
+          shinydashboard::box(title = 'Configure REDCap',
+                              width = '100%',
+                              status = 'danger',
+                              solidHeader = F,
+                              div(id=ns('redcap_configuration_options_div'),
+                                  uiOutput(ns('rc_configure_identifier')),
+                                  uiOutput(ns('rc_configure_reviewer')),
+                                  uiOutput(ns('rc_configure_select_reviewer')),
+                                  uiOutput(ns('rc_configure_select_btn'))
+                              ),
+                              div(id=ns('redcap_configured_success_div'),
+                                  uiOutput(ns('rc_configured_message')) %>% shinycssloaders::withSpinner()
+                              )
+          )
+      )
     )
   )
 }
@@ -72,7 +74,7 @@ redcap_setup_server <- function(id) {
     function(input, output, session) {
       ns <- session$ns
       ## Start these divs in a hidden state
-      shinyjs::hide('redcap_configure_div')
+      # shinyjs::hide('redcap_configure_div')
       shinyjs::hide('redcap_configured_success_div')
       ## REDCap Setup Values ----
       redcap_setup <- reactiveValues(
