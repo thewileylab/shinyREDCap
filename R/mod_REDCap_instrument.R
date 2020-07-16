@@ -81,13 +81,13 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         selected_instrument_complete_field = NULL,
         previous_selected_instrument_complete_val = '',
         selected_instrument_meta_required = NULL,
-        previous_data = NULL,
-        previous_instrument_formatted_data = NULL,
-        previous_instrument_formatted_data_labels = NULL,
+        previous_subject_data = NULL,
+        previous_subject_instrument_formatted_data = NULL,
+        previous_subject_instrument_formatted_data_labels = NULL,
         current_record_id = NULL,
-        current_data = NULL,
-        current_instrument_formatted_data = NULL,
-        current_instrument_formatted_data_labels = NULL,
+        current_subject_data = NULL,
+        current_subject_instrument_formatted_data = NULL,
+        current_subject_instrument_formatted_data_labels = NULL,
         data_comparison = NULL,
         overwrite_modal = NULL,
         upload_status = NULL
@@ -133,7 +133,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         # browser()
         redcap_instrument$upload_status <- NULL ## Clear previous upload status.
         ### Special case, when the REDCap Instrument has no previous data
-        redcap_instrument$previous_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
+        redcap_instrument$previous_subject_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
           redcap_vars$rc_field_names %>% 
             select(.data$export_field_name, .data$choice_value) %>% 
             mutate(choice_value = map(.x = .data$choice_value, ~ NA)) %>% 
@@ -160,12 +160,12 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       
       ## Process Previous Data ----
       ### Format previous data to display appropriately in the Shiny representation of the REDCap Instrument
-      observeEvent(redcap_instrument$previous_data, {
-        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$previous_data)
+      observeEvent(redcap_instrument$previous_subject_data, {
+        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$previous_subject_data)
         
-        redcap_instrument$previous_instrument_formatted_data <- if(nrow(redcap_instrument$previous_data ) > 0 ){
-          if(ncol(redcap_instrument$previous_data %>% select(contains('___')) ) > 0 ) {
-            redcap_instrument$previous_data %>%
+        redcap_instrument$previous_subject_instrument_formatted_data <- if(nrow(redcap_instrument$previous_subject_data ) > 0 ){
+          if(ncol(redcap_instrument$previous_subject_data %>% select(contains('___')) ) > 0 ) {
+            redcap_instrument$previous_subject_data %>%
               # Turn wide data from RedCAP to long, collapsing checkbox type questions along the way
               pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
               separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
@@ -177,12 +177,12 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
               pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
               pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
             } else {
-              redcap_instrument$previous_data %>%
+              redcap_instrument$previous_subject_data %>%
                 pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
               }
-          } else if(nrow(redcap_instrument$previous_data ) == 0 & redcap_vars$requires_reviewer == 'no' ) {
-            if(ncol(redcap_instrument$previous_data %>% select(contains('___')) ) > 0 ) {
-              redcap_instrument$previous_data %>%
+          } else if(nrow(redcap_instrument$previous_subject_data ) == 0 & redcap_vars$requires_reviewer == 'no' ) {
+            if(ncol(redcap_instrument$previous_subject_data %>% select(contains('___')) ) > 0 ) {
+              redcap_instrument$previous_subject_data %>%
                 add_row(!!redcap_vars$identifier_field := subject_id() ) %>% # Add default data, without reviewer info, if present
                 mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
                 pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
@@ -191,13 +191,13 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                 pivot_wider(names_from = .data$checkbox_questions, values_from = .data$value_present, values_fn = list(value_present = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
                 pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
               } else {
-                redcap_instrument$previous_data %>%
+                redcap_instrument$previous_subject_data %>%
                   add_row(!!redcap_vars$identifier_field := subject_id() ) %>% 
                   pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
                 }
             } else {
-              if(ncol(redcap_instrument$previous_data %>% select(contains('___')) ) > 0 ) {
-                redcap_instrument$previous_data %>%
+              if(ncol(redcap_instrument$previous_subject_data %>% select(contains('___')) ) > 0 ) {
+                redcap_instrument$previous_subject_data %>%
                   add_row(!!redcap_vars$identifier_field := subject_id(), !!redcap_vars$reviewer_field := redcap_vars$reviewer ) %>% # Add default data, with reviewer info, if present
                   mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
                   pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
@@ -206,7 +206,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                   pivot_wider(names_from = .data$checkbox_questions, values_from = .data$value_present, values_fn = list(value_present = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
                   pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
                 } else {
-                  redcap_instrument$previous_data %>%
+                  redcap_instrument$previous_subject_data %>%
                     add_row(!!redcap_vars$identifier_field := subject_id(), !!redcap_vars$reviewer_field := redcap_vars$reviewer ) %>% 
                     pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
                 }
@@ -215,9 +215,9 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       
       ## REDCap Record ID ----
       ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id.
-      observeEvent(redcap_instrument$previous_instrument_formatted_data, {
+      observeEvent(redcap_instrument$previous_subject_instrument_formatted_data, {
         # browser()
-        temp_redcap_record_id <- redcap_instrument$previous_instrument_formatted_data %>% 
+        temp_redcap_record_id <- redcap_instrument$previous_subject_instrument_formatted_data %>% 
           filter(.data$field_name == redcap_vars$rc_record_id_field) %>% 
           rename(inputID = .data$field_name, current_value = .data$previous_value)
         redcap_instrument$current_record_id <- if(temp_redcap_record_id %>% unnest(.data$current_value) %>% pull(.data$current_value) == '') {
@@ -228,12 +228,13 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             temp_redcap_record_id
             }
         })
+      
       ## Create REDCap Instrument ---- 
       ### Create a Shiny tagList for each question type present in the instrument
-      observeEvent(c(redcap_instrument$selected_instrument_meta, redcap_instrument$previous_instrument_formatted_data), {
-        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta, redcap_instrument$previous_instrument_formatted_data)
+      observeEvent(c(redcap_instrument$selected_instrument_meta, redcap_instrument$previous_subject_instrument_formatted_data), {
+        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta, redcap_instrument$previous_subject_instrument_formatted_data)
         redcap_instrument$rc_instrument_ui <- redcap_instrument$selected_instrument_meta %>%
-          left_join(redcap_instrument$previous_instrument_formatted_data ) %>% #### add current subject info, if present, to the mix
+          left_join(redcap_instrument$previous_subject_instrument_formatted_data ) %>% #### add current subject info, if present, to the mix
           mutate( ## mutate shiny tags/inputs
             shiny_header = map(.data$section_header, h3),
             shiny_field_label = case_when(is.na(.data$required_field) ~ .data$field_label,
@@ -275,7 +276,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       observeEvent(c(instrumentData(), input$survey_complete), {
         # browser()
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta) ### Wait for more instrument selection.
-        redcap_instrument$current_data <- redcap_instrument$selected_instrument_meta %>%
+        redcap_instrument$current_subject_data <- redcap_instrument$selected_instrument_meta %>%
           select(.data$reviewr_redcap_widget_function, .data$field_name, .data$select_choices_or_calculations) %>% ## Include select_choices_or_calculations so that all columns can be sent back to REDCap. This allows for overwriting old data with blank ''
           add_row(field_name = redcap_vars$rc_record_id_field) %>% ## Add REDCap record ID field back into the instrument, so it can be joined with any previous data.
           left_join(instrumentData(), by = c('field_name' = 'inputID')) %>% ## Join the instrument inputs with the selected instrument. This ensures inputs are collected only for the active instrument
@@ -314,11 +315,11 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       
       ## Changes from Previous Data ----
       ## Determine Changes from previously entered data
-      observeEvent(c(redcap_instrument$current_data, input$survey_complete), {
+      observeEvent(c(redcap_instrument$current_subject_data, input$survey_complete), {
         # browser()
         req(input$survey_complete)
-        redcap_instrument$current_instrument_formatted_data <- if(ncol(redcap_instrument$current_data %>% select(contains('___')) ) > 0 ) {
-          redcap_instrument$current_data %>%
+        redcap_instrument$current_subject_instrument_formatted_data <- if(ncol(redcap_instrument$current_subject_data %>% select(contains('___')) ) > 0 ) {
+          redcap_instrument$current_subject_data %>%
             # Turn wide data from RedCAP to long, collapsing checkbox type questions along the way
             pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
             arrange(.data$checkbox_questions) %>% ## Ensure that order is correct so that list variables will have responses in the correct place.
@@ -331,16 +332,16 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
             pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
           } else {
-            redcap_instrument$current_data %>% 
+            redcap_instrument$current_subject_data %>% 
               pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
             } 
         })
       
-      observeEvent(c(redcap_instrument$previous_instrument_formatted_data, redcap_instrument$current_instrument_formatted_data), {
+      observeEvent(c(redcap_instrument$previous_subject_instrument_formatted_data, redcap_instrument$current_subject_instrument_formatted_data), {
         # browser()
-        req(redcap_instrument$previous_instrument_formatted_data, redcap_instrument$current_instrument_formatted_data)
+        req(redcap_instrument$previous_subject_instrument_formatted_data, redcap_instrument$current_subject_instrument_formatted_data)
         ### Add labels to previous data
-        redcap_instrument$previous_instrument_formatted_data_labels <- redcap_instrument$previous_instrument_formatted_data %>%
+        redcap_instrument$previous_subject_instrument_formatted_data_labels <- redcap_instrument$previous_subject_instrument_formatted_data %>%
           unnest(.data$previous_value) %>%
           ### This column allows us to determine if no previous data has been entered (New REDCap Record).
           mutate(is_empty = case_when(.data$previous_value == '' ~ 1,
@@ -363,7 +364,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           distinct(.data$previous_html, .keep_all = T)
         
         ### Add labels to current data  
-        redcap_instrument$current_instrument_formatted_data_labels <- redcap_instrument$current_instrument_formatted_data %>%
+        redcap_instrument$current_subject_instrument_formatted_data_labels <- redcap_instrument$current_subject_instrument_formatted_data %>%
           unnest(.data$current_value) %>%
           left_join(redcap_vars$rc_meta_exploded,
                     by = c('field_name' = 'field_name', 'current_value' = 'value')
@@ -379,8 +380,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           distinct(.data$current_html, .keep_all = T)
         
         ### Combine previous and current data to determine what, if anything, has changed   
-        redcap_instrument$data_comparison <- redcap_instrument$previous_instrument_formatted_data_labels %>% 
-          inner_join(redcap_instrument$current_instrument_formatted_data_labels, by = c('field_name' = 'field_name')) %>% 
+        redcap_instrument$data_comparison <- redcap_instrument$previous_subject_instrument_formatted_data_labels %>% 
+          inner_join(redcap_instrument$current_subject_instrument_formatted_data_labels, by = c('field_name' = 'field_name')) %>% 
           mutate(diff = case_when(.data$previous_value != .data$current_value ~ T,
                                   TRUE ~ F
                                   )
@@ -425,11 +426,11 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       
       ## Required Responses ----
       ## Check to see if all required questions have been answered
-      observeEvent(c(redcap_instrument$selected_instrument_meta_required, redcap_instrument$current_instrument_formatted_data), {
+      observeEvent(c(redcap_instrument$selected_instrument_meta_required, redcap_instrument$current_subject_instrument_formatted_data), {
         # browser()
-        req(redcap_instrument$current_instrument_formatted_data_labels)
+        req(redcap_instrument$current_subject_instrument_formatted_data_labels)
         redcap_instrument$qty_required <- nrow(redcap_instrument$selected_instrument_meta_required)
-        redcap_instrument$qty_required_answered <- suppressWarnings(redcap_instrument$current_instrument_formatted_data %>% 
+        redcap_instrument$qty_required_answered <- suppressWarnings(redcap_instrument$current_subject_instrument_formatted_data %>% 
                                                                       left_join(redcap_instrument$selected_instrument_meta_required) %>% 
                                                                       filter(.data$required_field == 'y') %>%
                                                                       unnest(.data$current_value) %>% 
@@ -444,10 +445,10 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         })
       
       ## REDCap Survey Complete ----
-      observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_data, redcap_instrument$selected_instrument_complete_field), {
-        req(input$rc_instrument_selection, redcap_instrument$previous_data, redcap_instrument$selected_instrument_complete_field)
+      observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_subject_data, redcap_instrument$selected_instrument_complete_field), {
+        req(input$rc_instrument_selection, redcap_instrument$previous_subject_data, redcap_instrument$selected_instrument_complete_field)
         # browser()
-        redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_data %>% 
+        redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_subject_data %>% 
           pull(redcap_instrument$selected_instrument_complete_field)
         updateSelectizeInput(session = session, 
                              inputId = 'survey_complete',
@@ -493,7 +494,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             message('Uploading abstraction data to REDCap')
             ## WIP Add instrument complete status to uploadData
             rc_uploadData <- if(redcap_vars$requires_reviewer == 'yes') {
-              redcap_instrument$current_data %>%
+              redcap_instrument$current_subject_data %>%
                 # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
                 ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
                 pivot_longer(cols = everything(),
@@ -509,7 +510,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                        !!redcap_vars$reviewer_field := redcap_vars$reviewer
                        )
             } else {
-              redcap_instrument$current_data %>%
+              redcap_instrument$current_subject_data %>%
                 # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
                 ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
                 pivot_longer(cols = everything(),
@@ -544,7 +545,9 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
               btn_labels = NA,
               type = "success"
             )
-            redcap_instrument$previous_data <- NULL ## Clear old data 
+            ## Clear old data
+            redcap_instrument$previous_subject_data <- NULL ## Clear old data 
+            redcap_instrument$previous_subject_instrument_formatted_data <- NULL
             }
         })
       
@@ -554,7 +557,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           message('Overwriting existing abstraction data in REDCap')
           ### WIP Add instrument complete status
           rc_overwriteData <- if(redcap_vars$requires_reviewer == 'yes') {
-            redcap_instrument$current_data %>% 
+            redcap_instrument$current_subject_data %>% 
               # select(redcap_vars$rc_record_id_field, redcap_instrument$data_comparison$field_name) %>% ### Only upload fields that have changed.
               ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
               pivot_longer(cols = everything(),
@@ -570,7 +573,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                      !!redcap_vars$reviewer_field := redcap_vars$reviewer
                      )
             } else {
-              redcap_instrument$current_data %>%
+              redcap_instrument$current_subject_data %>%
                 # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
                 ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
                 pivot_longer(cols = everything(),
@@ -605,7 +608,9 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             btn_labels = NA,
             type = "info"
             )
-          redcap_instrument$previous_data <- NULL ## Clear old data 
+          ## Clear old data
+          redcap_instrument$previous_subject_data <- NULL  
+          redcap_instrument$previous_subject_instrument_formatted_data <- NULL
           } else {
             message('Canceled upload.')
             }
