@@ -127,13 +127,25 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         })
       
       ## Retrieve Previous REDCap data ----
-      observeEvent(c(subject_id(), redcap_vars$is_configured, redcap_instrument$upload_status), {
-        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
+      observeEvent(c(redcap_vars$is_configured, redcap_instrument$upload_status), {
+        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
         message('Refreshing instrument data from REDCap')
+        # redcap_instrument$upload_status <- NULL ## Clear previous upload status.
+        redcap_instrument$is_empty <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) {
+          'yes'
+        } else {'no'
+          }
+        redcap_instrument$previous_data <- redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F)
+        message('REDCap Refresh Complete')
+        })
+      
+      ## Process Previous Data ----
+      ### Filter down existing REDCap data to the subject in context. If no data exists, create empty data structure
+      observeEvent(c(subject_id(), redcap_instrument$previous_data), {
+        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
         # browser()
-        redcap_instrument$upload_status <- NULL ## Clear previous upload status.
         ### Special case, when the REDCap Instrument has no previous data
-        redcap_instrument$previous_subject_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
+        redcap_instrument$previous_subject_data <- if(redcap_instrument$is_empty == 'yes') { 
           redcap_vars$rc_field_names %>% 
             select(.data$export_field_name, .data$choice_value) %>% 
             mutate(choice_value = map(.x = .data$choice_value, ~ NA)) %>% 
@@ -141,28 +153,22 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             flatten_dfr() %>% 
             tidyr::drop_na()
           ### Export existing Records, filtering to the subject in context  
-          } else if (redcapAPI::exportNextRecordName(redcap_vars$rc_con) != 1 & redcap_vars$requires_reviewer == 'no' ) {
-            redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F ) %>% 
+          } else if (redcap_instrument$is_empty == 'no' & redcap_vars$requires_reviewer == 'no' ) {
+            redcap_instrument$previous_data %>% 
               as_tibble() %>% 
               mutate_all(as.character) %>% 
               mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
               filter(!!as.name(redcap_vars$identifier_field ) == subject_id() )
             ### Export existing Records, filtering to the subject AND reviewer in context  
             } else {
-              redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F ) %>% 
+              redcap_instrument$previous_data %>% 
                 as_tibble() %>% 
                 mutate_all(as.character) %>% 
                 mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
                 filter(!!as.name(redcap_vars$identifier_field ) == subject_id() & !!as.name(redcap_vars$reviewer_field) == redcap_vars$reviewer )
               }
-        message('REDCap Refresh Complete')
-        })
-      
-      ## Process Previous Data ----
-      ### Format previous data to display appropriately in the Shiny representation of the REDCap Instrument
-      observeEvent(redcap_instrument$previous_subject_data, {
-        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$previous_subject_data)
         
+        ### Format previous data to display appropriately in the Shiny representation of the REDCap Instrument
         redcap_instrument$previous_subject_instrument_formatted_data <- if(nrow(redcap_instrument$previous_subject_data ) > 0 ){
           if(ncol(redcap_instrument$previous_subject_data %>% select(contains('___')) ) > 0 ) {
             redcap_instrument$previous_subject_data %>%
@@ -211,12 +217,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                     pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'previous_value', values_transform = list(previous_value = as.list), values_ptypes = list(previous_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
                 }
               }
-        })
-      
-      ## REDCap Record ID ----
-      ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id.
-      observeEvent(redcap_instrument$previous_subject_instrument_formatted_data, {
-        # browser()
+        ## REDCap Record ID ----
+        ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id.
         temp_redcap_record_id <- redcap_instrument$previous_subject_instrument_formatted_data %>% 
           filter(.data$field_name == redcap_vars$rc_record_id_field) %>% 
           rename(inputID = .data$field_name, current_value = .data$previous_value)
@@ -311,11 +313,11 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           flatten_dfr() %>% 
           ## Add Instrument complete value
           add_column(!!redcap_instrument$selected_instrument_complete_field := input$survey_complete)
-        })
+        # })
       
       ## Changes from Previous Data ----
       ## Determine Changes from previously entered data
-      observeEvent(c(redcap_instrument$current_subject_data, input$survey_complete), {
+      # observeEvent(c(redcap_instrument$current_subject_data, input$survey_complete), {
         # browser()
         req(input$survey_complete)
         redcap_instrument$current_subject_instrument_formatted_data <- if(ncol(redcap_instrument$current_subject_data %>% select(contains('___')) ) > 0 ) {
@@ -337,6 +339,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             } 
         })
       
+      ## Determine Changes ----
+      ### Add labels to previous data
       observeEvent(c(redcap_instrument$previous_subject_instrument_formatted_data, redcap_instrument$current_subject_instrument_formatted_data), {
         # browser()
         req(redcap_instrument$previous_subject_instrument_formatted_data, redcap_instrument$current_subject_instrument_formatted_data)
