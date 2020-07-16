@@ -617,10 +617,12 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       output$redcap_overwrite <- DT::renderDataTable({ redcap_instrument$overwrite_modal })
       
       ## Cleanup ----
-      ### Clear all instrument complete value on disconnect
+      ### Clear instrument complete value on disconnect
       observeEvent(c(redcap_vars$is_connected, redcap_vars$is_configured), {
         if(redcap_vars$is_connected == 'no' | redcap_vars$is_configured == 'no') {
-          redcap_instrument$previous_selected_instrument_complete_val = ''}
+          redcap_instrument$previous_selected_instrument_complete_val = ''
+          shinyjs::hide('instrument_status_select_div')
+          }
         }) 
       
       return(redcap_instrument)
