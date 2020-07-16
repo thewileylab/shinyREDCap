@@ -130,7 +130,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       observeEvent(c(subject_id(), redcap_vars$is_configured, redcap_instrument$upload_status), {
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', subject_id())
         message('Refreshing instrument data from REDCap')
-        browser()
+        # browser()
         redcap_instrument$upload_status <- NULL ## Clear previous upload status.
         ### Special case, when the REDCap Instrument has no previous data
         redcap_instrument$previous_data <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) { 
