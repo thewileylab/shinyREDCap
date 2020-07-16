@@ -161,7 +161,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       ## Process Previous Data ----
       ### Format previous data to display appropriately in the Shiny representation of the REDCap Instrument
       observeEvent(redcap_instrument$previous_data, {
-        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
+        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$previous_data)
         
         redcap_instrument$previous_instrument_formatted_data <- if(nrow(redcap_instrument$previous_data ) > 0 ){
           if(ncol(redcap_instrument$previous_data %>% select(contains('___')) ) > 0 ) {
@@ -230,9 +230,9 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         })
       ## Create REDCap Instrument ---- 
       ### Create a Shiny tagList for each question type present in the instrument
-      rc_instrument_ui <- reactive({
-        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta)
-        redcap_instrument$selected_instrument_meta %>%
+      observeEvent(c(redcap_instrument$selected_instrument_meta, redcap_instrument$previous_instrument_formatted_data), {
+        req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes', redcap_instrument$selected_instrument_meta, redcap_instrument$previous_instrument_formatted_data)
+        redcap_instrument$rc_instrument_ui <- redcap_instrument$selected_instrument_meta %>%
           left_join(redcap_instrument$previous_instrument_formatted_data ) %>% #### add current subject info, if present, to the mix
           mutate( ## mutate shiny tags/inputs
             shiny_header = map(.data$section_header, h3),
@@ -613,7 +613,10 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       
       ## REDCap Instrument UI Outputs ----
       output$instrument_select <- renderUI({ instrument_select() })
-      output$instrument_ui <- renderUI({ rc_instrument_ui()$shiny_taglist })
+      output$instrument_ui <- renderUI({ 
+        req(redcap_instrument$rc_instrument_ui$shiny_taglist)
+        redcap_instrument$rc_instrument_ui$shiny_taglist 
+        })
       output$redcap_overwrite <- DT::renderDataTable({ redcap_instrument$overwrite_modal })
       
       ## Cleanup ----
