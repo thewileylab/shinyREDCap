@@ -189,7 +189,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         ### Combine other with current and export
         redcap_instrument$all_review_status <- all_other_reviewer_status %>% 
           dplyr::full_join(all_current_reviewer_status) %>% 
-          mutate_all(replace_na, 'Review Not Started')
+          mutate_all(replace_na, '<em>Review Not Started</em>')
         message('REDCap Refresh Complete')
       })
       
