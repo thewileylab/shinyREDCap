@@ -170,21 +170,21 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                  redcap_survey_complete_names = glue::glue('<em>{.data$redcap_survey_complete_names}</em>'),
                  ) %>% 
           tidyr::unite(col = 'complete_field', .data$complete_field, .data$redcap_survey_complete_names, sep = ': ') %>% 
-          select(-complete_value) %>%
-          group_by(ID, reviewer) %>% 
+          select(-.data$complete_value) %>%
+          group_by(.data$ID, .data$reviewer) %>% 
           summarise(review_status = glue::glue_collapse(.data$complete_field, sep = '<br>')) %>% 
           ungroup()
         
         ### Determine Status of every Record ID for all other reviewers
         all_other_reviewer_status <- temp_review_status %>% 
-          filter(reviewer != redcap_vars$reviewer) %>%
+          filter(.data$reviewer != redcap_vars$reviewer) %>%
           mutate(reviewer = glue::glue('<b>{.data$reviewer}:</b>')) %>% 
           tidyr::unite(col = 'REDCap Record Status:<br>Other Reviewers', .data$reviewer, .data$review_status , sep = '<br>') 
         
         ### Determine Status of every Record ID for currently configured reviewer
         all_current_reviewer_status <- temp_review_status %>% 
-          filter(reviewer == redcap_vars$reviewer) %>%
-          select(-reviewer, !!glue::glue('REDCap Record Status:<br>{redcap_vars$reviewer}') := review_status) 
+          filter(.data$reviewer == redcap_vars$reviewer) %>%
+          select(-.data$reviewer, !!glue::glue('REDCap Record Status:<br>{redcap_vars$reviewer}') := .data$review_status) 
 
         ### Combine other with current and export
         redcap_instrument$all_review_status <- all_other_reviewer_status %>% 
