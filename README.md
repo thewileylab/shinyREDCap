@@ -27,10 +27,11 @@ devtools::install_github("thewileylab/shinyREDCap")
 
 ## Usage
 
-To connect shinyREDCap to your REDCap project, users must have read and
-write access to a previously created REDCap project. Additionally, users
-must request an API key. The setup and instrument modules then must be
-placed in your Shiny application’s ui and server functions.
+To connect shinyREDCap to your REDCap Instruments, users must have read
+and write access to a previously created REDCap project. Additionally,
+users must request an API key. The shinyREDCap setup and instrument
+modules then must be placed in your Shiny application’s ui and server
+functions.
 
 ``` r
 library(shiny)
