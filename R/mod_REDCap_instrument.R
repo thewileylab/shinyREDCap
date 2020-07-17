@@ -253,7 +253,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                     ) %>%
           distinct(.data$previous_html, .keep_all = T)
 
-        ## REDCap Record ID ----
+        ## REDCap Record ID
         ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id.
         temp_redcap_record_id <- redcap_instrument$previous_subject_instrument_formatted_data %>% 
           filter(.data$field_name == redcap_vars$rc_record_id_field) %>% 
@@ -295,6 +295,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                  tagList
                                  )
             )
+        message('Monitoring Instrument for changes...')
         })
       
       ## Collect Instrument data ----
