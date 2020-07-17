@@ -105,7 +105,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         upload_status = NULL
         )
       
-      observeEvent(redcap_vars$is_configured, {
+      observe({
         req(redcap_vars$is_configured == 'yes')
         shinyjs::show('rc_instrument_selection_div')
         updateSelectizeInput(session = session, 
