@@ -60,9 +60,9 @@ redcap_instrument_ui <- function(id) {
 #' @return REDCap records from the currently selected project
 #' @export
 #' 
-#' @importFrom dplyr arrange as_tibble case_when coalesce contains desc distinct everything filter group_by inner_join left_join mutate mutate_all mutate_if pull rename select slice summarise ungroup
+#' @importFrom dplyr arrange as_tibble case_when coalesce contains desc distinct everything filter full_join group_by inner_join left_join mutate mutate_all mutate_if pull rename select slice summarise ungroup
 #' @importFrom DT datatable
-#' @importFrom glue glue
+#' @importFrom glue glue glue_collapse
 #' @importFrom httr config
 #' @importFrom magrittr %>% 
 #' @importFrom purrr flatten_chr flatten_dfr map map2 map2_chr pmap modify_depth
@@ -74,7 +74,7 @@ redcap_instrument_ui <- function(id) {
 #' @importFrom shinyWidgets confirmSweetAlert sendSweetAlert
 #' @importFrom stringr str_to_lower str_detect
 #' @importFrom tibble rownames_to_column add_row add_column tibble
-#' @importFrom tidyr pivot_wider pivot_longer drop_na replace_na separate unnest
+#' @importFrom tidyr drop_na pivot_wider pivot_longer replace_na separate unite unnest
 #'
 redcap_instrument_server <- function(id, redcap_vars, subject_id) {
   moduleServer(
@@ -87,6 +87,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         selected_instrument_complete_field = NULL,
         previous_selected_instrument_complete_val = '',
         selected_instrument_meta_required = NULL,
+        previous_data = NULL,
+        all_review_status = NULL,
         previous_subject_data = NULL,
         previous_subject_instrument_formatted_data = NULL,
         previous_subject_instrument_formatted_data_labels = NULL,
@@ -142,14 +144,53 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       observeEvent(c(redcap_vars$is_configured, redcap_instrument$upload_status), {
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
         message('Refreshing instrument data from REDCap')
-        # redcap_instrument$upload_status <- NULL ## Clear previous upload status.
+        
+        ### Determine if the instrument(s) are empty by exporting the next record id. If 1 is returned, the instrument(s) are empty.
         redcap_instrument$is_empty <- if(redcapAPI::exportNextRecordName(redcap_vars$rc_con) == 1) {
           'yes'
-        } else {'no'
-          }
+          } else {
+            'no'
+            }
+        
+        ### Export all project records across all instruments
         redcap_instrument$previous_data <- redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F)
+        
+        ### All Record status
+        temp_review_status <- redcap_instrument$previous_data %>% 
+          select('ID' = redcap_vars$identifier_field, 'reviewer' = redcap_vars$reviewer_field, contains('_complete')) %>% 
+          mutate_all(as.character) %>% 
+          pivot_longer(cols = contains('_complete'), names_to = 'complete_field', values_to = 'complete_value') %>% 
+          mutate(complete_field = stringr::str_remove(.data$complete_field, '_complete'),
+                 complete_field = snakecase::to_sentence_case(.data$complete_field),
+                 complete_value = as.numeric(.data$complete_value)
+                 ) %>% 
+          left_join(shinyREDCap::redcap_survey_complete, by = c('complete_value' ='redcap_survey_complete_values')) %>%
+          mutate(complete_field = glue::glue('- {.data$complete_field}'),
+                 redcap_survey_complete_names = glue::glue('<em>{.data$redcap_survey_complete_names}</em>'),
+                 ) %>% 
+          tidyr::unite(col = 'complete_field', .data$complete_field, .data$redcap_survey_complete_names, sep = ': ') %>% 
+          select(-complete_value) %>%
+          group_by(ID, reviewer) %>% 
+          summarise(review_status = glue::glue_collapse(.data$complete_field, sep = '<br>')) %>% 
+          ungroup()
+        
+        ### Determine Status of every Record ID for all other reviewers
+        all_other_reviewer_status <- temp_review_status %>% 
+          filter(reviewer != redcap_vars$reviewer) %>%
+          mutate(reviewer = glue::glue('<b>{.data$reviewer}:</b>')) %>% 
+          tidyr::unite(col = 'REDCap Record Status:<br>Other Reviewers', .data$reviewer, .data$review_status , sep = '<br>') 
+        
+        ### Determine Status of every Record ID for currently configured reviewer
+        all_current_reviewer_status <- temp_review_status %>% 
+          filter(reviewer == redcap_vars$reviewer) %>%
+          select(-reviewer, !!glue::glue('REDCap Record Status:<br>{redcap_vars$reviewer}') := review_status) 
+
+        ### Combine other with current and export
+        redcap_instrument$all_review_status <- all_other_reviewer_status %>% 
+          dplyr::full_join(all_current_reviewer_status) %>% 
+          mutate_all(replace_na, 'Review Not Started')
         message('REDCap Refresh Complete')
-        })
+      })
       
       ## Process Previous Data ----
       ### Filter down existing REDCap data to the subject in context. If no data exists, create empty data structure
