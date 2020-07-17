@@ -405,6 +405,7 @@ redcap_setup_server <- function(id) {
         redcap_setup$reviewer_field <- NULL
         redcap_setup$reviewer <- NULL
         redcap_setup$rc_configured_message <- NULL
+        redcap_setup$rc_records <- redcapAPI::exportRecords(redcap_setup$rc_con, factors = F, labels = F) %>% dplyr::as_tibble() ### pull records, just in case data was entered
         shinyjs::show('redcap_configuration_options_div')
         shinyjs::reset('redcap_configuration_options_div')
         })
