@@ -72,14 +72,14 @@ redcap_connection <- function(url, token) {
 #' 
 
 ## Create Shiny Widget Translation Functions 
-reviewr_textInput <- function(id, field_label, value = NULL, placeholder = NULL, ...) {
+shinyREDCap_textInput <- function(id, field_label, value = NULL, placeholder = NULL, ...) {
   textInput(inputId = id ,label = HTML(field_label), value = value , placeholder = placeholder)
 }
 
 #' @rdname render_redcap_instrument
 #' @keywords internal
 #' @export
-reviewr_dateInput <- function(id, field_label, value = NULL, ...) {
+shinyREDCap_dateInput <- function(id, field_label, value = NULL, ...) {
   dateInput(inputId = id, label = HTML(field_label), value = value)
 }
 
@@ -88,7 +88,7 @@ reviewr_dateInput <- function(id, field_label, value = NULL, ...) {
 #' @rdname render_redcap_instrument
 #' @keywords internal
 #' @export
-reviewr_dropdown <- function(id, field_label, required, choices, value = NULL, ...) {
+shinyREDCap_dropdown <- function(id, field_label, required, choices, value = NULL, ...) {
   ## Create selectable choices
   required_choice <- if_else(is.na(required), '[Leave Blank]', '[Not Yet Answered]')
   temp <- tibble(choices = choices) %>% 
@@ -106,7 +106,7 @@ reviewr_dropdown <- function(id, field_label, required, choices, value = NULL, .
 #' @rdname render_redcap_instrument
 #' @keywords internal
 #' @export
-reviewr_truefalse <- function(id, field_label, required, value = NULL, ...) {
+shinyREDCap_truefalse <- function(id, field_label, required, value = NULL, ...) {
   if(is.na(required) ) {
     radio_names <- list('True', 'False', HTML("<font color='grey'>[Leave Blank]</font>"))
   } else {
@@ -119,7 +119,7 @@ reviewr_truefalse <- function(id, field_label, required, value = NULL, ...) {
 #' @rdname render_redcap_instrument
 #' @keywords internal
 #' @export
-reviewr_yesno <- function(id, field_label, required, value = NULL, ...) {
+shinyREDCap_yesno <- function(id, field_label, required, value = NULL, ...) {
   if(is.na(required) ) {
     radio_names <- list('Yes', 'No', HTML("<font color='grey'>[Leave Blank]</font>"))
   } else {
@@ -132,7 +132,7 @@ reviewr_yesno <- function(id, field_label, required, value = NULL, ...) {
 #' @rdname render_redcap_instrument
 #' @keywords internal
 #' @export
-reviewr_radio <- function(id, field_label, required, choices, value = NULL, ...) {
+shinyREDCap_radio <- function(id, field_label, required, choices, value = NULL, ...) {
   ## Create selectable choices
   if(is.na(required) ) {
     append_val <- list(HTML("<font color='grey'>[Leave Blank]</font>"))
@@ -158,7 +158,7 @@ reviewr_radio <- function(id, field_label, required, choices, value = NULL, ...)
 #' @rdname render_redcap_instrument
 #' @keywords internal
 #' @export
-reviewr_checkbox <- function(id, field_label, choices, value = NULL, ...) {
+shinyREDCap_checkbox <- function(id, field_label, choices, value = NULL, ...) {
   ## Create selectable choices
   temp <- tibble(choices = choices) %>% 
     separate_rows(choices, sep = '\\|') %>% 
@@ -172,14 +172,14 @@ reviewr_checkbox <- function(id, field_label, choices, value = NULL, ...) {
 #' @rdname render_redcap_instrument
 #' @keywords internal
 #' @export
-reviewr_notes <- function(id, field_label, value = NULL, ...) {
+shinyREDCap_notes <- function(id, field_label, value = NULL, ...) {
   textAreaInput(inputId = id, label = HTML(field_label), value = value)
 }
 
 #' @rdname render_redcap_instrument
 #' @keywords internal
 #' @export
-reviewr_integer <- function(id, field_label, value = NULL, ...) {
+shinyREDCap_integer <- function(id, field_label, value = NULL, ...) {
   numericInput(inputId = id, label = HTML(field_label), value = value)
 }
 
@@ -189,26 +189,26 @@ reviewr_integer <- function(id, field_label, value = NULL, ...) {
 #' @rdname render_redcap_instrument
 #' @keywords internal
 #' @export
-render_redcap <- function(reviewr_type, field_name, field_label, required, choices, current_subject_data = NULL ) {
-  if(reviewr_type == 'reviewr_text') {   ## Text: textInput 
-    reviewr_textInput(id = field_name, field_label = field_label, value = current_subject_data)
-  } else if(reviewr_type == 'reviewr_date') {             ## Date: dateInput 
-    reviewr_dateInput(id = field_name, field_label = field_label, value = current_subject_data)
-  } else if (reviewr_type == 'reviewr_dropdown') {        ## DropDown: selectInput
-    reviewr_dropdown(id = field_name, field_label = field_label, required, choices = choices, value = current_subject_data)
-  } else if (reviewr_type == 'reviewr_truefalse') {       ## TrueFalse: radioButtoms 
-    reviewr_truefalse(id = field_name, field_label = field_label, required, value = current_subject_data)
-  } else if (reviewr_type == 'reviewr_yesno') {           ## YesNo: radioButtons 
-    reviewr_yesno(id = field_name, field_label = field_label, required, value = current_subject_data)
-  } else if (reviewr_type == 'reviewr_radio') {           ## Radio: radioButtons 
-    reviewr_radio(id = field_name, field_label = field_label, required, choices = choices, value = current_subject_data)
-  } else if (reviewr_type == 'reviewr_checkbox') {        ## Checkbox: checkboxGroupInput 
-    reviewr_checkbox(id = field_name, field_label = field_label, choices = choices, value = current_subject_data)
-  } else if (reviewr_type == 'reviewr_notes') {           ## Notes: textAreaInput 
-    reviewr_notes(id = field_name, field_label = field_label, value = current_subject_data)
-  } else if (reviewr_type == 'reviewr_integer') {         ## Integer: numericInput 
-    reviewr_integer(id = field_name, field_label = field_label, value = current_subject_data)
+render_redcap <- function(shinyREDCap_type, field_name, field_label, required, choices, current_subject_data = NULL ) {
+  if(shinyREDCap_type == 'shinyREDCap_text') {   ## Text: textInput 
+    shinyREDCap_textInput(id = field_name, field_label = field_label, value = current_subject_data)
+  } else if(shinyREDCap_type == 'shinyREDCap_date') {             ## Date: dateInput 
+    shinyREDCap_dateInput(id = field_name, field_label = field_label, value = current_subject_data)
+  } else if (shinyREDCap_type == 'shinyREDCap_dropdown') {        ## DropDown: selectInput
+    shinyREDCap_dropdown(id = field_name, field_label = field_label, required, choices = choices, value = current_subject_data)
+  } else if (shinyREDCap_type == 'shinyREDCap_truefalse') {       ## TrueFalse: radioButtoms 
+    shinyREDCap_truefalse(id = field_name, field_label = field_label, required, value = current_subject_data)
+  } else if (shinyREDCap_type == 'shinyREDCap_yesno') {           ## YesNo: radioButtons 
+    shinyREDCap_yesno(id = field_name, field_label = field_label, required, value = current_subject_data)
+  } else if (shinyREDCap_type == 'shinyREDCap_radio') {           ## Radio: radioButtons 
+    shinyREDCap_radio(id = field_name, field_label = field_label, required, choices = choices, value = current_subject_data)
+  } else if (shinyREDCap_type == 'shinyREDCap_checkbox') {        ## Checkbox: checkboxGroupInput 
+    shinyREDCap_checkbox(id = field_name, field_label = field_label, choices = choices, value = current_subject_data)
+  } else if (shinyREDCap_type == 'shinyREDCap_notes') {           ## Notes: textAreaInput 
+    shinyREDCap_notes(id = field_name, field_label = field_label, value = current_subject_data)
+  } else if (shinyREDCap_type == 'shinyREDCap_integer') {         ## Integer: numericInput 
+    shinyREDCap_integer(id = field_name, field_label = field_label, value = current_subject_data)
   } else {                                                ## Unsupported input 
-    reviewr_textInput(id = field_name, field_label = "This is an unsupported field type", placeholder = reviewr_type)
+    shinyREDCap_textInput(id = field_name, field_label = "This is an unsupported field type", placeholder = shinyREDCap_type)
   }
 }

@@ -340,7 +340,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             shiny_field_label = case_when(is.na(.data$required_field) ~ .data$field_label,
                                           TRUE ~ paste(.data$field_label,"<br/><font color='#FC0020'>* must provide value</font>")
                                           ),
-            shiny_input = pmap(list(reviewr_type = .data$reviewr_redcap_widget_function,
+            shiny_input = pmap(list(shinyREDCap_type = .data$shinyREDCap_redcap_widget_function,
                                     field_name = ns(.data$field_name),
                                     field_label = .data$shiny_field_label,
                                     required = .data$required_field,
@@ -377,7 +377,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         # browser()
         req(redcap_instrument$data)
         redcap_instrument$current_subject_data <- redcap_instrument$selected_instrument_meta %>%
-          select(.data$reviewr_redcap_widget_function, .data$field_name, .data$select_choices_or_calculations) %>% ## Include select_choices_or_calculations so that all columns can be sent back to REDCap. This allows for overwriting old data with blank ''
+          select(.data$shinyREDCap_redcap_widget_function, .data$field_name, .data$select_choices_or_calculations) %>% ## Include select_choices_or_calculations so that all columns can be sent back to REDCap. This allows for overwriting old data with blank ''
           add_row(field_name = redcap_vars$rc_record_id_field) %>% ## Add REDCap record ID field back into the instrument, so it can be joined with any previous data.
           left_join(redcap_instrument$data, by = c('field_name' = 'inputID')) %>% ## Join the instrument inputs with the selected instrument. This ensures inputs are collected only for the active instrument
           modify_depth(2, as.character) %>% ## the input values are all lists at this moment. Dive into each list (depth = 2) and make sure that the values within the list are coded as characters
@@ -386,11 +386,11 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           separate(.data$select_choices_or_calculations, into = c('rc_val','rc_label'), sep = ',') %>% ## Separate
           ## This mutate adds additional column names to hold values for checkbox questions
           mutate(rc_label = str_trim(.data$rc_label), ## Trim
-                 inputID = pmap(list(x = .data$reviewr_redcap_widget_function, y = .data$field_name, z = .data$rc_val ),  function(x,y,z) case_when(str_detect(string = x, pattern = 'reviewr_checkbox') ~ paste0(y, '___', z), ## Create additional column names for inputs where multiple inputs are allowed
+                 inputID = pmap(list(x = .data$shinyREDCap_redcap_widget_function, y = .data$field_name, z = .data$rc_val ),  function(x,y,z) case_when(str_detect(string = x, pattern = 'shinyREDCap_checkbox') ~ paste0(y, '___', z), ## Create additional column names for inputs where multiple inputs are allowed
                                                                                                                                                     TRUE ~ y)
                                 ),
-                 current_value = pmap(list(x = .data$reviewr_redcap_widget_function, y = .data$rc_val, z = .data$current_value), function(x,y,z) case_when(str_detect(string = x, pattern = 'reviewr_checkbox') & y == z ~ '1',
-                                                                                                                                                           str_detect(string = x, pattern = 'reviewr_checkbox') & y != z ~ '',
+                 current_value = pmap(list(x = .data$shinyREDCap_redcap_widget_function, y = .data$rc_val, z = .data$current_value), function(x,y,z) case_when(str_detect(string = x, pattern = 'shinyREDCap_checkbox') & y == z ~ '1',
+                                                                                                                                                           str_detect(string = x, pattern = 'shinyREDCap_checkbox') & y != z ~ '',
                                                                                                                                                            TRUE ~ z)
                                       ),
                  inputID = flatten_chr(.data$inputID)

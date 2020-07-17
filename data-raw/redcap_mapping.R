@@ -3,8 +3,8 @@
 library(tibble)
 redcap_field_type <- c('text','text','text','dropdown','truefalse','yesno','radio','checkbox','notes')
 redcap_field_val <- c(NA,'date_mdy','integer',NA,NA,NA,NA,NA,NA)
-reviewr_redcap_widget_function <- c('reviewr_text','reviewr_date','reviewr_integer','reviewr_dropdown','reviewr_truefalse','reviewr_yesno','reviewr_radio','reviewr_checkbox','reviewr_notes')
-redcap_widget_map <- tibble(redcap_field_type, redcap_field_val, reviewr_redcap_widget_function)
+shinyREDCap_redcap_widget_function <- c('shinyREDCap_text','shinyREDCap_date','shinyREDCap_integer','shinyREDCap_dropdown','shinyREDCap_truefalse','shinyREDCap_yesno','shinyREDCap_radio','shinyREDCap_checkbox','shinyREDCap_notes')
+redcap_widget_map <- tibble(redcap_field_type, redcap_field_val, shinyREDCap_redcap_widget_function)
 usethis::use_data(redcap_widget_map)
 
 # REDCap survey complete choices
