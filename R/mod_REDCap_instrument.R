@@ -157,39 +157,59 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         redcap_instrument$previous_data <- redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F)
         
         ### All Record status
+        if(redcap_vars$requires_reviewer == 'yes') {
         temp_review_status <- redcap_instrument$previous_data %>% 
-          select('ID' = redcap_vars$identifier_field, 'reviewer' = redcap_vars$reviewer_field, contains('_complete')) %>% 
-          mutate_all(as.character) %>% 
-          pivot_longer(cols = contains('_complete'), names_to = 'complete_field', values_to = 'complete_value') %>% 
-          mutate(complete_field = stringr::str_remove(.data$complete_field, '_complete'),
-                 complete_field = snakecase::to_sentence_case(.data$complete_field),
-                 complete_value = as.numeric(.data$complete_value)
-                 ) %>% 
-          left_join(shinyREDCap::redcap_survey_complete, by = c('complete_value' ='redcap_survey_complete_values')) %>%
-          mutate(complete_field = glue::glue('- {.data$complete_field}'),
-                 redcap_survey_complete_names = glue::glue('<em>{.data$redcap_survey_complete_names}</em>'),
-                 ) %>% 
-          tidyr::unite(col = 'complete_field', .data$complete_field, .data$redcap_survey_complete_names, sep = ': ') %>% 
-          select(-.data$complete_value) %>%
-          group_by(.data$ID, .data$reviewer) %>% 
-          summarise(review_status = glue::glue_collapse(.data$complete_field, sep = '<br>')) %>% 
-          ungroup()
-        
-        ### Determine Status of every Record ID for all other reviewers
-        all_other_reviewer_status <- temp_review_status %>% 
-          filter(.data$reviewer != redcap_vars$reviewer) %>%
-          mutate(reviewer = glue::glue('<b>{.data$reviewer}:</b>')) %>% 
-          tidyr::unite(col = 'REDCap Record Status:<br>Other Reviewers', .data$reviewer, .data$review_status , sep = '<br>') 
-        
-        ### Determine Status of every Record ID for currently configured reviewer
-        all_current_reviewer_status <- temp_review_status %>% 
-          filter(.data$reviewer == redcap_vars$reviewer) %>%
-          select(-.data$reviewer, !!glue::glue('REDCap Record Status:<br>{redcap_vars$reviewer}') := .data$review_status) 
-
-        ### Combine other with current and export
-        redcap_instrument$all_review_status <- all_other_reviewer_status %>% 
-          dplyr::full_join(all_current_reviewer_status) %>% 
-          mutate_all(replace_na, '<em>Review Not Started</em>')
+            select('ID' = redcap_vars$identifier_field, 'reviewer' = redcap_vars$reviewer_field, contains('_complete')) %>% 
+            mutate_all(as.character) %>% 
+            pivot_longer(cols = contains('_complete'), names_to = 'complete_field', values_to = 'complete_value') %>% 
+            mutate(complete_field = stringr::str_remove(.data$complete_field, '_complete'),
+                   complete_field = snakecase::to_sentence_case(.data$complete_field),
+                   complete_value = as.numeric(.data$complete_value)
+                   ) %>% 
+            left_join(shinyREDCap::redcap_survey_complete, by = c('complete_value' ='redcap_survey_complete_values')) %>%
+            mutate(complete_field = glue::glue('- {.data$complete_field}'),
+                   redcap_survey_complete_names = glue::glue('<em>{.data$redcap_survey_complete_names}</em>'),
+                   ) %>% 
+            tidyr::unite(col = 'complete_field', .data$complete_field, .data$redcap_survey_complete_names, sep = ': ') %>% 
+            select(-.data$complete_value) %>%
+            group_by(.data$ID, .data$reviewer) %>% 
+            summarise(review_status = glue::glue_collapse(.data$complete_field, sep = '<br>')) %>% 
+            ungroup()
+          
+          ### Determine Status of every Record ID for all other reviewers
+          all_other_reviewer_status <- temp_review_status %>% 
+            filter(.data$reviewer != redcap_vars$reviewer) %>%
+            mutate(reviewer = glue::glue('<b>{.data$reviewer}:</b>')) %>% 
+            tidyr::unite(col = 'REDCap Record Status:<br>Other Reviewers', .data$reviewer, .data$review_status , sep = '<br>') 
+          
+          ### Determine Status of every Record ID for currently configured reviewer
+          all_current_reviewer_status <- temp_review_status %>% 
+            filter(.data$reviewer == redcap_vars$reviewer) %>%
+            select(-.data$reviewer, !!glue::glue('REDCap Record Status:<br>{redcap_vars$reviewer}') := .data$review_status) 
+  
+          ### Combine other with current and export
+          redcap_instrument$all_review_status <- all_other_reviewer_status %>% 
+            dplyr::full_join(all_current_reviewer_status) %>% 
+            mutate_all(replace_na, '<em>Review Not Started</em>')
+          } else {
+            redcap_instrument$all_review_status <- redcap_instrument$previous_data %>% 
+              select('ID' = redcap_vars$identifier_field, contains('_complete')) %>% 
+              mutate_all(as.character) %>% 
+              pivot_longer(cols = contains('_complete'), names_to = 'complete_field', values_to = 'complete_value') %>% 
+              mutate(complete_field = stringr::str_remove(.data$complete_field, '_complete'),
+                     complete_field = snakecase::to_sentence_case(.data$complete_field),
+                     complete_value = as.numeric(.data$complete_value)
+                     ) %>% 
+              left_join(shinyREDCap::redcap_survey_complete, by = c('complete_value' ='redcap_survey_complete_values')) %>%
+              mutate(complete_field = glue::glue('- {.data$complete_field}'),
+                     redcap_survey_complete_names = glue::glue('<em>{.data$redcap_survey_complete_names}</em>'),
+                     ) %>% 
+              tidyr::unite(col = 'complete_field', .data$complete_field, .data$redcap_survey_complete_names, sep = ': ') %>% 
+              select(-.data$complete_value) %>%
+              group_by(.data$ID) %>% 
+              summarise('REDCap Record Status' = glue::glue_collapse(.data$complete_field, sep = '<br>')) %>% 
+              ungroup()
+        }
         message('REDCap Refresh Complete')
       })
       
