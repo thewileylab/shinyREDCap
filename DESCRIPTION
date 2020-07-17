@@ -16,7 +16,7 @@ Imports:
     redcapAPI,
     REDCapR,
     rlang,
-    shiny,
+    shiny (>= 1.5.0),
     shinycssloaders,
     shinydashboard,
     shinyjs,
