@@ -171,9 +171,9 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           all_other_reviewer_status <- temp_review_status %>% 
             filter(.data$reviewer != redcap_vars$reviewer) %>%
             mutate(reviewer = glue::glue('<b>{.data$reviewer}:</b>')) %>% 
-            tidyr::unite(col = review_status, .data$reviewer, .data$review_status , sep = '<br>') %>% 
-            group_by(ID) %>% 
-            summarise('REDCap Record Status:<br>Other Reviewers' = glue::glue_collapse(review_status, sep = '<br>'))
+            tidyr::unite(col = 'review_status', .data$reviewer, .data$review_status , sep = '<br>') %>% 
+            group_by(.data$ID) %>% 
+            summarise('REDCap Record Status:<br>Other Reviewers' = glue::glue_collapse(.data$review_status, sep = '<br>'))
           
           ### Determine Status of every Record ID for currently configured reviewer
           all_current_reviewer_status <- temp_review_status %>% 
