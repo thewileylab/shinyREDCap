@@ -17,7 +17,6 @@ redcap_instrument_ui <- function(id) {
     useShinydashboard(),
     useShinyjs(),
     useSweetAlert(),
-    
     shinydashboard::box(title = "REDCap Instrument",
                         width = '100%',
                         status = 'danger',
