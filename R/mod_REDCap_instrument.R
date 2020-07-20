@@ -747,7 +747,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           redcap_instrument$current_subject_instrument_formatted_data <- NULL
           redcap_instrument$current_subject_instrument_formatted_data_labels <- NULL
           redcap_instrument$rc_instrument_ui <- NULL
-          # shinyjs::hide('instrument_status_select_div')
+          shinyjs::hide('redcap_upload_btn_div')
           }
         }) 
       
