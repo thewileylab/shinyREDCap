@@ -17,7 +17,7 @@ redcap_instrument_ui <- function(id) {
     useShinydashboard(),
     useShinyjs(),
     useSweetAlert(),
-    div(style='height:600px; overflow-y:scroll',
+    div(style='max-height:600px; overflow-y:scroll',
       shinydashboard::box(title = "REDCap Instrument",
                           width = '100%',
                           status = 'danger',
