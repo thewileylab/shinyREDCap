@@ -519,8 +519,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         # browser()
         ### Choices to present to user
       choices <- if (redcap_instrument$required_answered == TRUE) {
-        shinyREDCap::redcap_survey_complete %>% 
-          filter(.data$redcap_survey_complete_names != 'Incomplete')
+        shinyREDCap::redcap_survey_complete
         } else {
           shinyREDCap::redcap_survey_complete %>% 
             filter(.data$redcap_survey_complete_names != 'Complete')
