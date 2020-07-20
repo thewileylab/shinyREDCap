@@ -17,13 +17,15 @@ redcap_instrument_ui <- function(id) {
     useShinydashboard(),
     useShinyjs(),
     useSweetAlert(),
-    shinydashboard::box(title = "REDCap Instrument",
-                        width = '100%',
-                        status = 'danger',
-                        solidHeader = F,
-                        uiOutput(ns('instrument_select')),
-                        uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f') 
-                        ),
+    div(style='height:600px; overflow-y:scroll',
+      shinydashboard::box(title = "REDCap Instrument",
+                          width = '100%',
+                          status = 'danger',
+                          solidHeader = F,
+                          uiOutput(ns('instrument_select')),
+                          uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f') 
+                          )
+      ),
     shinydashboard::box(title = 'Upload to REDCap',
                         width = '100%',
                         status = 'danger',
