@@ -466,8 +466,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                            )
                  )
         # complete_question <- temp_complete_diff %>% pull(field_name) %>% snakecase::to_sentence_case()
-        complete_previous <- temp_complete_diff %>% pull(previous_value)
-        complete_new <- temp_complete_diff %>% pull(current_value)
+        complete_previous <- temp_complete_diff %>% pull(.data$previous_value)
+        complete_new <- temp_complete_diff %>% pull(.data$current_value)
         redcap_instrument$complete_status_html <- HTML(glue::glue('<br>The Instrument Status has changed from <em>{complete_previous}</em> to <em>{complete_new}</em>
                                                                   <br><br>Changed data:'))
         
