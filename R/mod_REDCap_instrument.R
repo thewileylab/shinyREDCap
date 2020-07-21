@@ -550,9 +550,26 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       ### Here, we decide what to do. 
       observeEvent(input$upload, {
         # browser() ### Pause before upload. Evaluate your life choices up until this point.
-        overwrite_existing <- redcap_instrument$data_comparison %>% 
-          filter(.data$is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
-          nrow()
+        message('Determining overwrite status...')
+        overwrite_existing <- if(redcap_vars$requires_reviewer == 'yes') {
+          # overwrite_existing <- redcap_instrument$data_comparison %>% 
+          #   filter(.data$is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
+          #   nrow()
+          redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F) %>% 
+            as_tibble() %>% 
+            mutate_all(as.character) %>% 
+            filter(!!as.name(redcap_vars$identifier_field) == subject_id() & !!as.name(redcap_vars$reviewer_field) == !!redcap_vars$reviewer) %>% 
+            nrow()
+          message('REDCap refresh complete')
+            } else {
+              redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F) %>% 
+                as_tibble() %>% 
+                mutate_all(as.character) %>% 
+                filter(!!as.name(redcap_vars$identifier_field) == subject_id() ) %>% 
+                nrow()
+              message('REDCap refresh complete')
+              }
+          
         if(overwrite_existing > 0) {
           ### Are we overwriting existing REDCap data? Notify the user, else upload to redcap
           confirmSweetAlert(
