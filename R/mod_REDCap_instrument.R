@@ -540,11 +540,13 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         
         selected <- if (redcap_instrument$required_answered == TRUE) {
           redcap_instrument$previous_selected_instrument_complete_val
-          } else if (identical(redcap_instrument$previous_selected_instrument_complete_val, character(0)) ) {
-            ''
-            } else {
-              redcap_instrument$previous_selected_instrument_complete_val
-              }
+          } else if(redcap_instrument$required_answered == FALSE) {
+            0
+            } else if (identical(redcap_instrument$previous_selected_instrument_complete_val, character(0)) ) {
+              ''
+              } else {
+                redcap_instrument$previous_selected_instrument_complete_val
+                }
         updateSelectizeInput(session = session, 
                              inputId = 'survey_complete',
                              choices = choices %>% deframe(),
