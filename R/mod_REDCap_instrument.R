@@ -527,7 +527,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           } else if (identical(redcap_instrument$previous_selected_instrument_complete_val, character(0)) ) {
             ''
             } else {
-              0
+              redcap_instrument$previous_selected_instrument_complete_val
               }
         updateSelectizeInput(session = session, 
                              inputId = 'survey_complete',
