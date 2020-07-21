@@ -450,22 +450,38 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           filter(.data$field_name != redcap_vars$rc_record_id_field & diff == TRUE) ## This will be different when entering new data
         redcap_instrument$data_is_different <- nrow(redcap_instrument$data_comparison) > 0
         
+        ### Create text for displaying Instrument Status Changes
+        temp_complete_diff <- redcap_instrument$data_comparison %>% 
+          ungroup() %>% 
+          filter(.data$field_name == redcap_instrument$selected_instrument_complete_field) %>% 
+          mutate(previous_value = case_when(.data$previous_value == '0' ~ 'Incomplete',
+                                            .data$previous_value == '1' ~ 'Unverified',
+                                            .data$previous_value == '2' ~ 'Complete',
+                                            TRUE ~ 'Review Not Started'    
+                                            ),
+                 current_value = case_when(.data$current_value == '0' ~ 'Incomplete',
+                                           .data$current_value == '1' ~ 'Unverified',
+                                           .data$current_value == '2' ~ 'Complete',
+                                           TRUE ~ 'Review Not Started'    
+                                           )
+                 )
+        # complete_question <- temp_complete_diff %>% pull(field_name) %>% snakecase::to_sentence_case()
+        complete_previous <- temp_complete_diff %>% pull(previous_value)
+        complete_new <- temp_complete_diff %>% pull(current_value)
+        redcap_instrument$complete_status_html <- HTML(glue::glue('<br>The Instrument Status has changed from <em>{complete_previous}</em> to <em>{complete_new}</em>
+                                                                  <br><br>Changed data:'))
+        
         ### Create modal for displaying changes
         redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
           ungroup() %>% 
           left_join(redcap_instrument$selected_instrument_meta %>% select(.data$field_name, .data$field_label)) %>% 
-          select('Question' = .data$field_label, 'Previous Value' = .data$previous_html, 'Current Value' = .data$current_html) %>%
-          ## Here, we don't have a good existing data structure to label the instrument complete field, so we do some work.
-          mutate(Question = case_when(is.na(Question) ~ redcap_instrument$selected_instrument_complete_field %>% snakecase::to_sentence_case(),
-                                      TRUE ~ Question
-                                      )
-                 ) %>% 
+          select('Question' = .data$field_label, 'Previous Value' = .data$previous_html, 'New Value' = .data$current_html) %>%
+          filter(.data$Question != is.na(.data$Question)) %>% ### Remove instrument complete differences from display modal
           DT::datatable(
-            extensions = list('Scroller' = NULL),
             options = list(scrollX = TRUE,
-                           deferRender = TRUE,
-                           scrollY = '450px',
-                           scroller = TRUE,
+                           paging = FALSE,
+                           autoWidth = TRUE,
+                           columnDefs = list(list(width = '40%', targets = 0)),
                            sDom  = '<"top">lrt<"bottom">ip'
                            ),
             rownames = F, 
@@ -575,8 +591,10 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           confirmSweetAlert(
             session = session,
             inputId = ns('confirm_overwrite'),
-            title = 'Warning! Overwriting existing REDCap data:',
-            text = DT::dataTableOutput(ns('redcap_overwrite')),
+            title = 'Warning! Overwriting existing REDCap data.',
+            text = tagList(redcap_instrument$complete_status_html,
+                           DT::dataTableOutput(ns('redcap_overwrite'))
+                           ),
             type = "warning",
             btn_labels = c("Cancel", "Upload to REDCap"),
             btn_colors = NULL,
