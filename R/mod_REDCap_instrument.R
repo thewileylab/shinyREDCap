@@ -548,13 +548,13 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                             .data$previous_value == '1' ~ 'Unverified',
                                             .data$previous_value == '2' ~ 'Complete',
                                             TRUE ~ 'Review Not Started'    
-          ),
-          current_value = case_when(.data$current_value == '0' ~ 'Incomplete',
-                                    .data$current_value == '1' ~ 'Unverified',
-                                    .data$current_value == '2' ~ 'Complete',
-                                    TRUE ~ 'Review Not Started'    
-          )
-          )
+                                            ),
+                 current_value = case_when(.data$current_value == '0' ~ 'Incomplete',
+                                           .data$current_value == '1' ~ 'Unverified',
+                                           .data$current_value == '2' ~ 'Complete',
+                                           TRUE ~ 'Review Not Started'    
+                                           )
+                 )
         
         redcap_instrument$complete_status_html <- if(redcap_instrument$data_is_different == TRUE & nrow(temp_complete_diff) > 0) {
           complete_previous <- temp_complete_diff %>% pull(.data$previous_value)
