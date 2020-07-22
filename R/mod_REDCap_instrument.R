@@ -22,23 +22,26 @@ redcap_instrument_ui <- function(id) {
                         status = 'danger',
                         solidHeader = F,
                         uiOutput(ns('instrument_select')),
-                        uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f') 
+                        div(style='max-height:600px; overflow-y:scroll',
+                            uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f') 
+                            )
                         ),
     shinydashboard::box(title = 'Upload to REDCap',
                         width = '100%',
                         status = 'danger',
                         solidHeader = F,
+                        div(id = ns('instrument_status_select_div'),
+                            selectizeInput(inputId = ns('survey_complete'),
+                                           label = 'Instrument Status',
+                                           choices = NULL
+                                           )
+                            ),
+                        uiOutput(ns('redcap_instrument_complte_warn')),
                         shinyjs::hidden(
-                          div(id = ns('instrument_status_select_div'),
-                              selectizeInput(inputId = ns('survey_complete'),
-                                             label = 'Instrument Status',
-                                             choices = NULL
-                                             )
-                              ),
                           div(id = ns('redcap_upload_btn_div'),
                               actionButton(inputId = ns('upload'), label = 'Upload to REDCap')
                               )
-                        )
+                          )
                         )
     )
 }
@@ -93,7 +96,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         current_subject_instrument_formatted_data_labels = NULL,
         data_comparison = NULL,
         data_is_different = NULL,
-        required_answered = NULL,
+        required_answered = FALSE,
         overwrite_modal = NULL,
         upload_status = NULL
         )
@@ -309,17 +312,9 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           distinct(.data$previous_html, .keep_all = T)
 
         ## REDCap Record ID
-        ### Determine the REDCap Record ID. If entering new data, generate a new REDCap record id.
-        temp_redcap_record_id <- redcap_instrument$previous_subject_instrument_formatted_data %>% 
+        redcap_instrument$current_record_id <- redcap_instrument$previous_subject_instrument_formatted_data %>% 
           filter(.data$field_name == redcap_vars$rc_record_id_field) %>% 
           rename(inputID = .data$field_name, current_value = .data$previous_value)
-        redcap_instrument$current_record_id <- if(temp_redcap_record_id %>% unnest(.data$current_value) %>% pull(.data$current_value) == '') {
-          tibble(inputID = redcap_vars$rc_record_id_field,
-                 current_value = list(redcapAPI::exportNextRecordName(redcap_vars$rc_con))
-                 )
-          } else {
-            temp_redcap_record_id
-            }
         })
       
       ## Create REDCap Instrument ---- 
@@ -455,22 +450,18 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           filter(.data$field_name != redcap_vars$rc_record_id_field & diff == TRUE) ## This will be different when entering new data
         redcap_instrument$data_is_different <- nrow(redcap_instrument$data_comparison) > 0
         
+        
         ### Create modal for displaying changes
         redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
           ungroup() %>% 
           left_join(redcap_instrument$selected_instrument_meta %>% select(.data$field_name, .data$field_label)) %>% 
-          select('Question' = .data$field_label, 'Previous Value' = .data$previous_html, 'Current Value' = .data$current_html) %>%
-          ## Here, we don't have a good existing data structure to label the instrument complete field, so we do some work.
-          mutate(Question = case_when(is.na(Question) ~ redcap_instrument$selected_instrument_complete_field %>% snakecase::to_sentence_case(),
-                                      TRUE ~ Question
-                                      )
-                 ) %>% 
+          select('Question' = .data$field_label, 'Previous Value' = .data$previous_html, 'New Value' = .data$current_html) %>%
+          filter(.data$Question != is.na(.data$Question)) %>% ### Remove instrument complete differences from display modal
           DT::datatable(
-            extensions = list('Scroller' = NULL),
             options = list(scrollX = TRUE,
-                           deferRender = TRUE,
-                           scrollY = '450px',
-                           scroller = TRUE,
+                           paging = FALSE,
+                           autoWidth = TRUE,
+                           columnDefs = list(list(width = '40%', targets = 0)),
                            sDom  = '<"top">lrt<"bottom">ip'
                            ),
             rownames = F, 
@@ -483,7 +474,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       ### Display the REDCap Upload button if user has changed values
       observeEvent(redcap_instrument$data_is_different, {
         # browser()
-        # req(redcap_instrument$data_is_different)
         if(redcap_instrument$data_is_different == TRUE) {
           shinyjs::show('redcap_upload_btn_div')
           } else {
@@ -513,26 +503,82 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         })
       
       ## REDCap Survey Complete ----
-      observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_subject_data), {
+      observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_subject_data, redcap_instrument$required_answered), {
         req(input$rc_instrument_selection, redcap_instrument$previous_subject_data, redcap_instrument$selected_instrument_complete_field)
         # browser()
+        ### Choices to present to user
+        choices <- if (redcap_instrument$required_answered == TRUE) {
+          shinyREDCap::redcap_survey_complete
+          } else {
+            shinyREDCap::redcap_survey_complete %>% 
+              filter(.data$redcap_survey_complete_names != 'Complete')
+            }
+      
+        ### Existing Instrument Complete Value
         redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_subject_data %>% 
           pull(redcap_instrument$selected_instrument_complete_field)
+        
+        selected <- if (redcap_instrument$required_answered == TRUE) {
+          redcap_instrument$previous_selected_instrument_complete_val
+          } else if(redcap_instrument$required_answered == FALSE) {
+            0
+            } else if (identical(redcap_instrument$previous_selected_instrument_complete_val, character(0)) ) {
+              ''
+              } else {
+                redcap_instrument$previous_selected_instrument_complete_val
+                }
         updateSelectizeInput(session = session, 
                              inputId = 'survey_complete',
-                             choices = shinyREDCap::redcap_survey_complete %>% deframe(),
-                             selected = redcap_instrument$previous_selected_instrument_complete_val,
+                             choices = choices %>% deframe(),
+                             selected = selected,
                              server = T,
                              options = list(create = FALSE,
                                             placeholder = 'Review Not Started'))
       })
       
-      ## Display the REDCap Form Status button if all required responses have been entered
-      observeEvent(redcap_instrument$required_answered, {
-        if(redcap_instrument$required_answered == TRUE) {
-          shinyjs::show('instrument_status_select_div')
+      ## Instrument Complete Warning ----
+      observeEvent(c(redcap_instrument$data_comparison, redcap_instrument$required_answered), {
+        req(redcap_instrument$data_comparison)
+        # browser()
+        ### Create text for displaying Instrument Status Changes
+        temp_complete_diff <- redcap_instrument$data_comparison %>% 
+          ungroup() %>% 
+          filter(.data$field_name == redcap_instrument$selected_instrument_complete_field) %>% 
+          mutate(previous_value = case_when(.data$previous_value == '0' ~ 'Incomplete',
+                                            .data$previous_value == '1' ~ 'Unverified',
+                                            .data$previous_value == '2' ~ 'Complete',
+                                            TRUE ~ 'Review Not Started'    
+                                            ),
+                 current_value = case_when(.data$current_value == '0' ~ 'Incomplete',
+                                           .data$current_value == '1' ~ 'Unverified',
+                                           .data$current_value == '2' ~ 'Complete',
+                                           TRUE ~ 'Review Not Started'    
+                                           )
+                 )
+        
+        redcap_instrument$complete_status_html <- if(redcap_instrument$data_is_different == TRUE & nrow(temp_complete_diff) > 0) {
+          complete_previous <- temp_complete_diff %>% pull(.data$previous_value)
+          complete_new <- temp_complete_diff %>% pull(.data$current_value)
+          if(redcap_instrument$required_answered == FALSE & complete_previous != complete_new) {
+            ### https://external-preview.redd.it/AKOGxCJ0ksM7c5zzIxWg0kDOL-llpMlKpZbcvjohFHs.png?auto=webp&s=571052da630cc6b755bd7bf8f202bdd3e8329e8c
+            HTML(glue::glue('<br>Note: The instrument status has been automatically changed from <em>{complete_previous}</em> to <em>{complete_new}</em> due to missing answers for required questions.
+                            <br><br>Changed Data:')
+                 )
+            } else {
+            HTML(glue::glue('<br>The instrument status has changed from <em>{complete_previous}</em> to <em>{complete_new}</em>
+                            <br><br>Changed data:')
+                 )
+              }
           } else {
-            shinyjs::hide('instrument_status_select_div')
+            NULL
+            }
+      })
+      
+      instrument_complete_warn <- reactive({
+        if(redcap_instrument$required_answered == TRUE) {
+          NULL
+          } else {
+            HTML("<font color='#e83a2f'>Warning: To select 'Complete' please answer all required questions.</font>")
             }
         })
       
@@ -540,16 +586,35 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       ### Here, we decide what to do. 
       observeEvent(input$upload, {
         # browser() ### Pause before upload. Evaluate your life choices up until this point.
-        overwrite_existing <- redcap_instrument$data_comparison %>% 
-          filter(.data$is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
-          nrow()
+        message('Determining overwrite status...')
+        overwrite_existing <- if(redcap_vars$requires_reviewer == 'yes') {
+          # overwrite_existing <- redcap_instrument$data_comparison %>% 
+          #   filter(.data$is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
+          #   nrow()
+          redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F) %>% 
+            as_tibble() %>% 
+            mutate_all(as.character) %>% 
+            filter(!!as.name(redcap_vars$identifier_field) == subject_id() & !!as.name(redcap_vars$reviewer_field) == !!redcap_vars$reviewer) %>% 
+            nrow()
+          
+            } else {
+              overwrite_upload_check <- redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F) %>% 
+                as_tibble() %>% 
+                mutate_all(as.character) %>% 
+                filter(!!as.name(redcap_vars$identifier_field) == subject_id() ) %>% 
+                nrow()
+              }
+        message('REDCap refresh complete')
+          
         if(overwrite_existing > 0) {
           ### Are we overwriting existing REDCap data? Notify the user, else upload to redcap
           confirmSweetAlert(
             session = session,
             inputId = ns('confirm_overwrite'),
-            title = 'Warning! Overwriting existing REDCap data:',
-            text = DT::dataTableOutput(ns('redcap_overwrite')),
+            title = 'Warning! Overwriting existing REDCap data.',
+            text = tagList(redcap_instrument$complete_status_html,
+                           DT::dataTableOutput(ns('redcap_overwrite'))
+                           ),
             type = "warning",
             btn_labels = c("Cancel", "Upload to REDCap"),
             btn_colors = NULL,
@@ -558,10 +623,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             html = TRUE
             )
           } else {
-            ## WIP Add instrument complete status to uploadData
-            rc_uploadData <- if(redcap_vars$requires_reviewer == 'yes') {
+            redcap_instrument$upload_data <- if(redcap_vars$requires_reviewer == 'yes') {
               redcap_instrument$current_subject_data %>%
-                # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
                 ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
                 pivot_longer(cols = everything(),
                              names_to = 'field_name',
@@ -571,13 +634,12 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                          TRUE ~ .data$value)
                        ) %>% 
                 pivot_wider(names_from = .data$field_name, values_from = .data$value) %>% 
-                ## Always ensure subject id and reviewer are uploaded when a reviewer is configured
+                ### Always ensure subject id and reviewer are uploaded when a reviewer is configured
                 mutate(!!redcap_vars$identifier_field := subject_id(),
                        !!redcap_vars$reviewer_field := redcap_vars$reviewer
                        )
             } else {
               redcap_instrument$current_subject_data %>%
-                # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
                 ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
                 pivot_longer(cols = everything(),
                              names_to = 'field_name',
@@ -590,13 +652,16 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                 ## Always ensure subject id is uploaded
                 mutate(!!redcap_vars$identifier_field := subject_id())
               }
-            ## Check whether all required inputs are answered. If so, upload data as is. If not, change status to incomplete.
-            if(redcap_instrument$required_answered == TRUE) {
-              redcap_instrument$upload_data <- rc_uploadData
+            ## Determine if a new record id is needed
+            temp_redcap_record_id <- redcap_instrument$upload_data %>%
+              pull(redcap_vars$rc_record_id_field)
+            redcap_instrument$upload_data <- if(is.na(temp_redcap_record_id) ) {
+              redcap_instrument$upload_data %>% 
+                mutate(!!redcap_vars$rc_record_id_field :=  redcapAPI::exportNextRecordName(redcap_vars$rc_con))
               } else {
-                redcap_instrument$upload_data <- rc_uploadData %>% 
-                  mutate(!!redcap_instrument$selected_instrument_complete_field := 0)
+                redcap_instrument$upload_data
                 }
+            ## Perform Upload
             redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = redcap_instrument$upload_data, 
                                                                      redcap_uri = redcap_vars$rc_con$url,
                                                                      token = redcap_vars$rc_con$token,
@@ -610,7 +675,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
               text = upload_message,
               btn_labels = NA,
               type = "success"
-            )
+              )
             ## Clear old data
             redcap_instrument$previous_data <- NULL
             redcap_instrument$previous_subject_data <- NULL 
@@ -627,9 +692,8 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         if(input$confirm_overwrite == TRUE) {
           message('Overwriting existing abstraction data in REDCap')
           ### WIP Add instrument complete status
-          rc_overwriteData <- if(redcap_vars$requires_reviewer == 'yes') {
+          redcap_instrument$overwrite_data <- if(redcap_vars$requires_reviewer == 'yes') {
             redcap_instrument$current_subject_data %>% 
-              # select(redcap_vars$rc_record_id_field, redcap_instrument$data_comparison$field_name) %>% ### Only upload fields that have changed.
               ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
               pivot_longer(cols = everything(),
                            names_to = 'field_name',
@@ -639,13 +703,12 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                        TRUE ~ .data$value)
                      ) %>% 
               pivot_wider(names_from = .data$field_name, values_from = .data$value) %>% 
-              ## Always ensure subject id and reviewer are uploaded when a reviewer is configured
+              ### Always ensure subject id and reviewer are uploaded when a reviewer is configured
               mutate(!!redcap_vars$identifier_field := subject_id(),
                      !!redcap_vars$reviewer_field := redcap_vars$reviewer
                      )
             } else {
               redcap_instrument$current_subject_data %>%
-                # select(redcap_vars$rc_record_id_field, contains(redcap_instrument$data_comparison$field_name)) %>% ### Only upload fields that have changed.
                 ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
                 pivot_longer(cols = everything(),
                              names_to = 'field_name',
@@ -658,13 +721,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                 ## Always ensure subject id is uploaded
                 mutate(!!redcap_vars$identifier_field := subject_id())
             }
-          ## Check whether all required inputs are answered. If so, upload data as is. If not, change status to incomplete.
-          if(redcap_instrument$required_answered == TRUE) {
-            redcap_instrument$overwrite_data <- rc_overwriteData
-            } else {
-              redcap_instrument$overwrite_data <- rc_overwriteData %>% 
-                mutate(!!redcap_instrument$selected_instrument_complete_field := 0)
-              }
+          ## Perform Upload
           redcap_instrument$upload_status <- REDCapR::redcap_write(ds_to_write = redcap_instrument$overwrite_data, 
                                                                    redcap_uri = redcap_vars$rc_con$url,
                                                                    token = redcap_vars$rc_con$token,
@@ -701,6 +758,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         req(redcap_instrument$rc_instrument_ui$shiny_taglist)
         redcap_instrument$rc_instrument_ui$shiny_taglist 
         })
+      output$redcap_instrument_complte_warn <- renderUI({ instrument_complete_warn() })
       output$redcap_overwrite <- DT::renderDataTable({ redcap_instrument$overwrite_modal })
       
       ## Cleanup ----
@@ -717,7 +775,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           redcap_instrument$current_subject_instrument_formatted_data <- NULL
           redcap_instrument$current_subject_instrument_formatted_data_labels <- NULL
           redcap_instrument$rc_instrument_ui <- NULL
-          shinyjs::hide('instrument_status_select_div')
+          shinyjs::hide('redcap_upload_btn_div')
           }
         }) 
       
