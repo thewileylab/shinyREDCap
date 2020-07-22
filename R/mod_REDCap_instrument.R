@@ -450,26 +450,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           filter(.data$field_name != redcap_vars$rc_record_id_field & diff == TRUE) ## This will be different when entering new data
         redcap_instrument$data_is_different <- nrow(redcap_instrument$data_comparison) > 0
         
-        ### Create text for displaying Instrument Status Changes
-        temp_complete_diff <- redcap_instrument$data_comparison %>% 
-          ungroup() %>% 
-          filter(.data$field_name == redcap_instrument$selected_instrument_complete_field) %>% 
-          mutate(previous_value = case_when(.data$previous_value == '0' ~ 'Incomplete',
-                                            .data$previous_value == '1' ~ 'Unverified',
-                                            .data$previous_value == '2' ~ 'Complete',
-                                            TRUE ~ 'Review Not Started'    
-                                            ),
-                 current_value = case_when(.data$current_value == '0' ~ 'Incomplete',
-                                           .data$current_value == '1' ~ 'Unverified',
-                                           .data$current_value == '2' ~ 'Complete',
-                                           TRUE ~ 'Review Not Started'    
-                                           )
-                 )
-        # complete_question <- temp_complete_diff %>% pull(field_name) %>% snakecase::to_sentence_case()
-        complete_previous <- temp_complete_diff %>% pull(.data$previous_value)
-        complete_new <- temp_complete_diff %>% pull(.data$current_value)
-        redcap_instrument$complete_status_html <- HTML(glue::glue('<br>The Instrument Status has changed from <em>{complete_previous}</em> to <em>{complete_new}</em>
-                                                                  <br><br>Changed data:'))
         
         ### Create modal for displaying changes
         redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
@@ -527,12 +507,12 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         req(input$rc_instrument_selection, redcap_instrument$previous_subject_data, redcap_instrument$selected_instrument_complete_field)
         # browser()
         ### Choices to present to user
-      choices <- if (redcap_instrument$required_answered == TRUE) {
-        shinyREDCap::redcap_survey_complete
-        } else {
-          shinyREDCap::redcap_survey_complete %>% 
-            filter(.data$redcap_survey_complete_names != 'Complete')
-        }
+        choices <- if (redcap_instrument$required_answered == TRUE) {
+          shinyREDCap::redcap_survey_complete
+          } else {
+            shinyREDCap::redcap_survey_complete %>% 
+              filter(.data$redcap_survey_complete_names != 'Complete')
+            }
       
         ### Existing Instrument Complete Value
         redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_subject_data %>% 
@@ -554,6 +534,43 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                              server = T,
                              options = list(create = FALSE,
                                             placeholder = 'Review Not Started'))
+      })
+      
+      ## Instrument Complete Warning ----
+      observeEvent(c(redcap_instrument$data_comparison, redcap_instrument$required_answered), {
+        req(redcap_instrument$data_comparison)
+        # browser()
+        ### Create text for displaying Instrument Status Changes
+        temp_complete_diff <- redcap_instrument$data_comparison %>% 
+          ungroup() %>% 
+          filter(.data$field_name == redcap_instrument$selected_instrument_complete_field) %>% 
+          mutate(previous_value = case_when(.data$previous_value == '0' ~ 'Incomplete',
+                                            .data$previous_value == '1' ~ 'Unverified',
+                                            .data$previous_value == '2' ~ 'Complete',
+                                            TRUE ~ 'Review Not Started'    
+          ),
+          current_value = case_when(.data$current_value == '0' ~ 'Incomplete',
+                                    .data$current_value == '1' ~ 'Unverified',
+                                    .data$current_value == '2' ~ 'Complete',
+                                    TRUE ~ 'Review Not Started'    
+          )
+          )
+        
+        redcap_instrument$complete_status_html <- if(redcap_instrument$data_is_different == TRUE & nrow(temp_complete_diff) > 0) {
+          complete_previous <- temp_complete_diff %>% pull(.data$previous_value)
+          complete_new <- temp_complete_diff %>% pull(.data$current_value)
+          if(redcap_instrument$required_answered == FALSE & complete_previous != complete_new) {
+            HTML(glue::glue('<br>Note: The instrument status has been automatically changed from <em>{complete_previous}</em> to <em>{complete_new}</em> due to missing answers for required questions.
+                          <br><br>Changed Data:')
+                 )
+            } else { 
+            HTML(glue::glue('<br>The instrument status has changed from <em>{complete_previous}</em> to <em>{complete_new}</em>
+                            <br><br>Changed data:')
+                 )
+              }
+          } else {
+            NULL
+            }
       })
       
       instrument_complete_warn <- reactive({
