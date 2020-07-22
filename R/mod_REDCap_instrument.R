@@ -560,10 +560,11 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           complete_previous <- temp_complete_diff %>% pull(.data$previous_value)
           complete_new <- temp_complete_diff %>% pull(.data$current_value)
           if(redcap_instrument$required_answered == FALSE & complete_previous != complete_new) {
+            ### https://external-preview.redd.it/AKOGxCJ0ksM7c5zzIxWg0kDOL-llpMlKpZbcvjohFHs.png?auto=webp&s=571052da630cc6b755bd7bf8f202bdd3e8329e8c
             HTML(glue::glue('<br>Note: The instrument status has been automatically changed from <em>{complete_previous}</em> to <em>{complete_new}</em> due to missing answers for required questions.
-                          <br><br>Changed Data:')
+                            <br><br>Changed Data:')
                  )
-            } else { 
+            } else {
             HTML(glue::glue('<br>The instrument status has changed from <em>{complete_previous}</em> to <em>{complete_new}</em>
                             <br><br>Changed data:')
                  )
