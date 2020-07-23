@@ -14,8 +14,7 @@
 redcap_setup_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    useShinydashboard(),
-    useShinyjs(),
+    golem_add_external_resources(),
     shinydashboard::box(title = 'Connect to REDCap',
                         width = '100%',
                         status = 'danger',
