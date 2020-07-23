@@ -6,9 +6,8 @@
 #' @return The REDCap Setup UI
 #' @export
 #' 
-#' @importFrom shinyWidgets useShinydashboard
 #' @importFrom shinydashboard box
-#' @importFrom shinyjs useShinyjs hidden
+#' @importFrom shinyjs hidden
 #' @importFrom shinycssloaders withSpinner
 #'
 redcap_setup_ui <- function(id) {

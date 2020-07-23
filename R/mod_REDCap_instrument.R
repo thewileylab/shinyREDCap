@@ -6,8 +6,7 @@
 #' @return A Shiny Representation of REDCap Instrument
 #' @export
 #' 
-#' @importFrom shinyWidgets useShinydashboard useSweetAlert
-#' @importFrom shinyjs useShinyjs hidden
+#' @importFrom shinyjs hidden
 #' @importFrom shinydashboard box
 #' @importFrom shinycssloaders withSpinner
 #'

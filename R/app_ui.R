@@ -29,6 +29,8 @@ app_ui <- function(request) {
 #' 
 #' @import shiny
 #' @importFrom golem add_resource_path activate_js favicon bundle_resources
+#' @importFrom shinyWidgets useShinydashboard useSweetAlert
+#' @importFrom shinyjs useShinyjs
 #' @noRd
 golem_add_external_resources <- function(){
   
