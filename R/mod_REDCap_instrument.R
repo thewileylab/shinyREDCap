@@ -14,9 +14,7 @@
 redcap_instrument_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    useShinydashboard(),
-    useShinyjs(),
-    useSweetAlert(),
+    golem_add_external_resources(),
     shinydashboard::box(title = "REDCap Instrument",
                         width = '100%',
                         status = 'danger',
