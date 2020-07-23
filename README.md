@@ -29,9 +29,18 @@ devtools::install_github("thewileylab/shinyREDCap")
 
 To connect shinyREDCap to your REDCap Instruments, users must have read
 and write access to a previously created REDCap project. Additionally,
-users must request an API key. The shinyREDCap setup and instrument
-modules then must be placed in your Shiny application’s ui and server
-functions.
+users must request an API key.
+
+To get a feel for the modules, you may run the demo application:
+
+``` r
+shinyREDCap::run_app()
+```
+
+To integrate shinyREDCap into your own Shiny application place
+`redcap_setup_ui()`, `redcap_instrument_ui()` and corresponding server
+modules into the application’s ui and server functions as in the example
+below:
 
 ``` r
 library(shiny)
@@ -79,7 +88,7 @@ please let us know on
 
 ## Code of Conduct
 
-Please note that the ‘shinyREDCap’ project is released with a
-[Contributor Code of
+Please note that the shinyREDCap project is released with a [Contributor
+Code of
 Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html).
 By contributing to this project, you agree to abide by its terms.
