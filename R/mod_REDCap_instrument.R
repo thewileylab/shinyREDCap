@@ -120,7 +120,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           ### assuming that they will be all character values, so we need to perform explicit casting to continue with that
           ### assumption.
           mutate_if(is.logical, as.character) %>%
-          left_join(shinyREDCap::redcap_widget_map,
+          left_join(shinyREDCap::redcap_shinywidget_map,
                     by = c('field_type' = 'redcap_field_type', 'text_validation_type_or_show_slider_number' = 'redcap_field_val')
                     ) %>%
           mutate(section_header = coalesce(.data$section_header, ''),

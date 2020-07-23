@@ -27,4 +27,4 @@
 #'   \item{shinyREDCap_redcap_widget_function}{shinyREDCap function to use when mapping to native Shiny widget}
 #'   ...
 #' }
-"redcap_widget_map"
+"redcap_shinywidget_map"
