@@ -174,6 +174,7 @@ redcap_setup_server <- function(id) {
       
       observeEvent(redcap_setup$rc_con, {
         # browser()
+        message('Retrieving REDCap project information')
         if (redcap_setup$rc_con %>% class() == 'redcapApiConnection') { ### When correct information is entered, the class of rc_con will be redcapApiConnection
           shinyjs::hide('redcap_connect_div') ### Hide REDCap connection GUI
           redcap_setup$rc_project_info <- redcapAPI::exportProjectInformation(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store Project Info
@@ -200,6 +201,7 @@ redcap_setup_server <- function(id) {
             mutate_all(replace_na, replace = '')
           redcap_setup$rc_records <- safe_exportRecords(redcap_setup$rc_con, redcap_setup$rc_field_names)
           redcap_setup$is_connected <- 'yes' ### Report REDCap is connected
+          message('Complete')
           shinyjs::show('redcap_configure_div') ### Show REDCap configure GUI
           shinyjs::show('redcap_configuration_options_div')
           } 
@@ -294,12 +296,12 @@ redcap_setup_server <- function(id) {
           redcap_setup$requires_reviewer <- 'yes'
           } else {
             redcap_setup$requires_reviewer <- 'no'
-            }
+          }
         })
       
       rc_current_reviewer_selectInput <- reactive({
         req(input$rc_reviewer_field, redcap_setup$config_error, redcap_setup$requires_reviewer)
-        if( input$rc_reviewer_field == '(Not Applicable)' ) {
+        if( input$rc_reviewer_field == '(Not Applicable)' | redcap_setup$temp_reviewer_field == '(Not Applicable)') {
           return(NULL)
           } else if(redcap_setup$config_error == 'yes'){
             return(HTML("<font color='#e83a2f'>Warning: This REDCap instrument contains multiple records from the same reviewer for an individual record identifier. Please visit REDCap via the web to correct the instrument. </font>"))
@@ -314,7 +316,7 @@ redcap_setup_server <- function(id) {
                              selected = '',
                              options = list(create = TRUE,
                                             placeholder = 'New Reviewer'))
-              }
+            }
         })
       
       rc_configure_btn <- reactive({
@@ -413,6 +415,7 @@ redcap_setup_server <- function(id) {
       
       observeEvent(input$rc_disconnect, { 
         # browser()
+        message('REDCap Disconnect')
         shinyjs::hide('redcap_configured_success_div')
         redcap_setup$is_configured <- 'no'
         redcap_setup$temp_identifier_field <- NULL
