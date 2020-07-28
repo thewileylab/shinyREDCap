@@ -59,7 +59,7 @@ redcap_setup_ui <- function(id) {
 #' @importFrom dplyr relocate as_tibble slice pull filter select mutate mutate_all case_when count distinct group_by
 #' @importFrom magrittr %>% 
 #' @importFrom purrr flatten_dfr
-#' @importFrom redcapAPI exportProjectInformation exportFieldNames exportInstruments exportRecords exportMetaData
+#' @importFrom redcapAPI exportProjectInformation exportFieldNames exportInstruments exportMetaData
 #' @importFrom rlang .data
 #' @importFrom shinyjs show hide reset
 #' @importFrom stringr str_trim
@@ -173,6 +173,7 @@ redcap_setup_server <- function(id) {
         })
       
       observeEvent(redcap_setup$rc_con, {
+        # browser()
         if (redcap_setup$rc_con %>% class() == 'redcapApiConnection') { ### When correct information is entered, the class of rc_con will be redcapApiConnection
           shinyjs::hide('redcap_connect_div') ### Hide REDCap connection GUI
           redcap_setup$rc_project_info <- redcapAPI::exportProjectInformation(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store Project Info
@@ -197,7 +198,7 @@ redcap_setup_server <- function(id) {
             separate(.data$select_choices_or_calculations, into = c('value','value_label'), sep = ',') %>% 
             mutate_all(str_trim) %>% 
             mutate_all(replace_na, replace = '')
-          redcap_setup$rc_records <- redcapAPI::exportRecords(redcap_setup$rc_con, factors = F, labels = F) %>% dplyr::as_tibble() ### Store REDCap Records that exist upon connection to assist with configuration.
+          redcap_setup$rc_records <- safe_exportRecords(redcap_setup$rc_con, redcap_setup$rc_field_names)
           redcap_setup$is_connected <- 'yes' ### Report REDCap is connected
           shinyjs::show('redcap_configure_div') ### Show REDCap configure GUI
           shinyjs::show('redcap_configuration_options_div')
@@ -403,7 +404,7 @@ redcap_setup_server <- function(id) {
         redcap_setup$reviewer_field <- NULL
         redcap_setup$reviewer <- NULL
         redcap_setup$rc_configured_message <- NULL
-        redcap_setup$rc_records <- redcapAPI::exportRecords(redcap_setup$rc_con, factors = F, labels = F) %>% dplyr::as_tibble() ### pull records, just in case data was entered
+        redcap_setup$rc_records <- safe_exportRecords(redcap_setup$rc_con, redcap_setup$rc_field_names) ### pull records, just in case data was entered
         shinyjs::show('redcap_configuration_options_div')
         shinyjs::reset('redcap_configuration_options_div')
         })

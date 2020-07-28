@@ -18,7 +18,11 @@ redcap_instrument_ui <- function(id) {
                         width = '100%',
                         status = 'danger',
                         solidHeader = F,
-                        uiOutput(ns('instrument_select')),
+                        # uiOutput(ns('instrument_select')),
+                        selectizeInput(inputId = ns('rc_instrument_selection'),
+                                       label = 'Select REDCap Instrument',
+                                       choices = NULL
+                                       ),
                         div(style='max-height:600px; overflow-y:scroll',
                             uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f') 
                             )
@@ -53,13 +57,13 @@ redcap_instrument_ui <- function(id) {
 #' @return REDCap records from the currently selected project
 #' @export
 #' 
-#' @importFrom dplyr arrange as_tibble case_when coalesce contains desc distinct everything filter full_join group_by inner_join left_join mutate mutate_all mutate_if pull rename select slice summarise ungroup
+#' @importFrom dplyr arrange case_when coalesce contains desc distinct everything filter full_join group_by inner_join left_join mutate mutate_all mutate_if pull rename select slice summarise ungroup
 #' @importFrom DT datatable
 #' @importFrom glue glue glue_collapse
 #' @importFrom httr config
 #' @importFrom magrittr %>% 
 #' @importFrom purrr flatten_chr flatten_dfr map map2 map2_chr pmap modify_depth
-#' @importFrom redcapAPI exportRecords exportNextRecordName
+#' @importFrom redcapAPI exportNextRecordName
 #' @importFrom REDCapR redcap_write
 #' @importFrom rlang .data :=
 #' @importFrom snakecase to_sentence_case
@@ -99,13 +103,13 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         )
       
       ## Select REDCap Instrument ----
-      instrument_select <- reactive({
-        req(redcap_vars$rc_instruments_list, redcap_vars$is_configured == 'yes')
-        selectInput(inputId = ns('rc_instrument_selection'),
-                    label = 'Select REDCap Instrument',
-                    choices = redcap_vars$rc_instruments_list
-                    )
-      })
+      observeEvent(redcap_vars$rc_instruments_list, {
+        updateSelectizeInput(session = session,
+                             inputId = 'rc_instrument_selection',
+                             choices = redcap_vars$rc_instruments_list,
+                             server = T
+                             )
+        })
       
       ## Extract and Prep REDCap Instrument ----
       observeEvent(input$rc_instrument_selection, {
@@ -145,7 +149,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             }
         
         ### Export all project records across all instruments
-        redcap_instrument$previous_data <- redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F)
+        redcap_instrument$previous_data <- safe_exportRecords(redcap_vars$rc_con, redcap_vars$rc_field_names)
         
         ### All Record status
         if(redcap_vars$requires_reviewer == 'yes') {
@@ -213,23 +217,16 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         # browser()
         ### Special case, when the REDCap Instrument has no previous data
         redcap_instrument$previous_subject_data <- if(redcap_instrument$is_empty == 'yes') { 
-          redcap_vars$rc_field_names %>% 
-            select(.data$export_field_name, .data$choice_value) %>% 
-            mutate(choice_value = map(.x = .data$choice_value, ~ NA)) %>% 
-            pivot_wider(names_from = .data$export_field_name, values_from = .data$choice_value) %>% 
-            flatten_dfr() %>% 
-            tidyr::drop_na()
+          redcap_instrument$previous_data
           ### Export existing Records, filtering to the subject in context  
           } else if (redcap_instrument$is_empty == 'no' & redcap_vars$requires_reviewer == 'no' ) {
             redcap_instrument$previous_data %>% 
-              as_tibble() %>% 
               mutate_all(as.character) %>% 
               mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
               filter(!!as.name(redcap_vars$identifier_field ) == subject_id() )
             ### Export existing Records, filtering to the subject AND reviewer in context  
             } else {
               redcap_instrument$previous_data %>% 
-                as_tibble() %>% 
                 mutate_all(as.character) %>% 
                 mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
                 filter(!!as.name(redcap_vars$identifier_field ) == subject_id() & !!as.name(redcap_vars$reviewer_field) == redcap_vars$reviewer )
@@ -390,7 +387,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                  ) %>%
           arrange(desc(.data$current_value)) %>%
           distinct(.data$inputID,.keep_all = T) %>%
-          tidyr::drop_na() %>%
+          # tidyr::drop_na() %>%
           pivot_wider(names_from = .data$inputID, values_from = .data$current_value) %>%
           select(!!redcap_vars$rc_record_id_field, everything() ) %>% ## RedCAP API likes the record identifier in the first column
           flatten_dfr() %>% 
@@ -588,15 +585,13 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           # overwrite_existing <- redcap_instrument$data_comparison %>% 
           #   filter(.data$is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
           #   nrow()
-          redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F) %>% 
-            as_tibble() %>% 
+          safe_exportRecords(redcap_vars$rc_con, redcap_vars$rc_field_names) %>% 
             mutate_all(as.character) %>% 
             filter(!!as.name(redcap_vars$identifier_field) == subject_id() & !!as.name(redcap_vars$reviewer_field) == !!redcap_vars$reviewer) %>% 
             nrow()
           
             } else {
-              overwrite_upload_check <- redcapAPI::exportRecords(rcon = redcap_vars$rc_con, factors = F, labels = F) %>% 
-                as_tibble() %>% 
+              overwrite_upload_check <- safe_exportRecords(redcap_vars$rc_con, redcap_vars$rc_field_names) %>% 
                 mutate_all(as.character) %>% 
                 filter(!!as.name(redcap_vars$identifier_field) == subject_id() ) %>% 
                 nrow()
@@ -747,10 +742,10 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         })
       
       ## REDCap Instrument UI Outputs ----
-      output$instrument_select <- renderUI({ 
-        req(instrument_select() )
-        instrument_select() 
-        })
+      # output$instrument_select <- renderUI({ 
+      #   req(instrument_select() )
+      #   instrument_select() 
+      #   })
       output$instrument_ui <- renderUI({ 
         req(redcap_instrument$rc_instrument_ui$shiny_taglist)
         redcap_instrument$rc_instrument_ui$shiny_taglist 
