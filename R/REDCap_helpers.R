@@ -70,7 +70,8 @@ redcap_connection <- function(url, token) {
 safe_exportRecords <- function(rc_con, rc_field_names) {
   tryCatch({
     redcapAPI::exportRecords(rc_con, factors = F, labels = F) %>% 
-      dplyr::as_tibble() 
+      dplyr::as_tibble() %>% 
+      mutate_all(as.character)
   }, error = function(durrrrr) {
     rc_field_names %>% 
       select(.data$export_field_name, .data$choice_value) %>% 
