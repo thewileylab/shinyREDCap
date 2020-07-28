@@ -220,6 +220,7 @@ redcap_setup_server <- function(id) {
         redcap_setup$is_connected <- 'no' ### Report REDCap is disconnected
         shinyjs::show('redcap_connect_div') ### Show REDCap connection GUI
         shinyjs::reset('redcap_connect_div') ### Reset inputs on REDCap connection GUI
+        shinyjs::reset('redcap_configure_div')
         shinyjs::hide('redcap_configure_div') ### Hide REDCap configuration GUI
         })
       
@@ -250,7 +251,8 @@ redcap_setup_server <- function(id) {
                     )
         })
       
-      observeEvent(input$rc_reviewer_field, {
+      observeEvent(c(redcap_setup$rc_records,input$rc_reviewer_field), {
+        # browser()
         req(redcap_setup$is_connected == 'yes', input$rc_reviewer_field)
         redcap_setup$temp_identifier_field <- redcap_setup$rc_meta_data %>% 
           filter(.data$field_label == input$rc_identifier_field) %>% 
