@@ -154,7 +154,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         if(redcap_vars$requires_reviewer == 'yes') {
         temp_review_status <- redcap_instrument$previous_data %>% 
             select('ID' = redcap_vars$identifier_field, 'reviewer' = redcap_vars$reviewer_field, contains('_complete')) %>% 
-            mutate_all(as.character) %>% 
             pivot_longer(cols = contains('_complete'), names_to = 'complete_field', values_to = 'complete_value') %>% 
             mutate(complete_field = stringr::str_remove(.data$complete_field, '_complete'),
                    complete_field = snakecase::to_sentence_case(.data$complete_field),
@@ -190,7 +189,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           } else {
             redcap_instrument$all_review_status <- redcap_instrument$previous_data %>% 
               select('ID' = redcap_vars$identifier_field, contains('_complete')) %>% 
-              mutate_all(as.character) %>% 
               pivot_longer(cols = contains('_complete'), names_to = 'complete_field', values_to = 'complete_value') %>% 
               mutate(complete_field = stringr::str_remove(.data$complete_field, '_complete'),
                      complete_field = snakecase::to_sentence_case(.data$complete_field),
@@ -220,13 +218,11 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           ### Export existing Records, filtering to the subject in context  
           } else if (redcap_instrument$is_empty == 'no' & redcap_vars$requires_reviewer == 'no' ) {
             redcap_instrument$previous_data %>% 
-              mutate_all(as.character) %>% 
               mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
               filter(!!as.name(redcap_vars$identifier_field ) == subject_id() )
             ### Export existing Records, filtering to the subject AND reviewer in context  
             } else {
               redcap_instrument$previous_data %>% 
-                mutate_all(as.character) %>% 
                 mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
                 filter(!!as.name(redcap_vars$identifier_field ) == subject_id() & !!as.name(redcap_vars$reviewer_field) == redcap_vars$reviewer )
               }
@@ -580,24 +576,20 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       observeEvent(input$upload, {
         # browser() ### Pause before upload. Evaluate your life choices up until this point.
         message('Determining overwrite status...')
-        overwrite_existing <- if(redcap_vars$requires_reviewer == 'yes') {
-          # overwrite_existing <- redcap_instrument$data_comparison %>% 
-          #   filter(.data$is_empty != 1) %>% ### if the previous data is empty (0), nothing is overwritten. Just new abstraction data!
-          #   nrow()
+        server_data <- if(redcap_vars$requires_reviewer == 'yes') {
           safe_exportRecords(redcap_vars$rc_con, redcap_vars$rc_field_names) %>% 
-            mutate_all(as.character) %>% 
-            filter(!!as.name(redcap_vars$identifier_field) == subject_id() & !!as.name(redcap_vars$reviewer_field) == !!redcap_vars$reviewer) %>% 
-            nrow()
-          
+            filter(!!as.name(redcap_vars$identifier_field) == subject_id() & !!as.name(redcap_vars$reviewer_field) == !!redcap_vars$reviewer)
             } else {
-              overwrite_upload_check <- safe_exportRecords(redcap_vars$rc_con, redcap_vars$rc_field_names) %>% 
-                mutate_all(as.character) %>% 
-                filter(!!as.name(redcap_vars$identifier_field) == subject_id() ) %>% 
-                nrow()
-              }
+              safe_exportRecords(redcap_vars$rc_con, redcap_vars$rc_field_names) %>% 
+                filter(!!as.name(redcap_vars$identifier_field) == subject_id() )
+            }
+        record_integrity <- identical(server_data, redcap_instrument$previous_data)
+        overwrite_existing <- nrow(server_data) > 0
         message('REDCap refresh complete')
-          
-        if(overwrite_existing > 0) {
+        
+        if(record_integrity == FALSE) {
+          message('nothing to do')
+        } else if(overwrite_existing == TRUE & record_integrity == TRUE) {
           ### Are we overwriting existing REDCap data? Notify the user, else upload to redcap
           confirmSweetAlert(
             session = session,
