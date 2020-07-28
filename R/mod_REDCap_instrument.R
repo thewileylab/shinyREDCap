@@ -329,7 +329,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                                     choices = .data$select_choices_or_calculations,
                                     current_subject_data = .data$previous_value 
                                     ),
-                               render_redcap
+                               render_redcap_instrument
                                ),
             shiny_note = map(.data$field_note, tags$sub),
             shiny_taglist = pmap(list(.data$shiny_header,

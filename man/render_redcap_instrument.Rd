@@ -10,7 +10,7 @@
 \alias{shinyREDCap_checkbox}
 \alias{shinyREDCap_notes}
 \alias{shinyREDCap_integer}
-\alias{render_redcap}
+\alias{render_redcap_instrument}
 \title{Render REDCap Instrument}
 \usage{
 shinyREDCap_textInput(id, field_label, value = NULL, placeholder = NULL, ...)
@@ -31,7 +31,7 @@ shinyREDCap_notes(id, field_label, value = NULL, ...)
 
 shinyREDCap_integer(id, field_label, value = NULL, ...)
 
-render_redcap(
+render_redcap_instrument(
   shinyREDCap_type,
   field_name,
   field_label,

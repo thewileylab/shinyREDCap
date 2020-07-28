@@ -14,7 +14,7 @@
 #' @importFrom httr config
 #'
 
-### REDCap API Security ----
+### REDCap API Security
 ### It is good practice to ensure that SSL certs are verified when utilizing the REDCap API. REDCap recommends setting the 
 ### 'CURLOPT_SSL_VERIFYPEER' option to TRUE to avoid potential man in the middle attacks.
 ###  - https://redcap.ucdenver.edu/api/help/?content=security
@@ -48,6 +48,41 @@ redcap_connection <- function(url, token) {
   })
   return(connection_status)
 }
+
+## REDCap Safe Export
+
+#' Safe Export Records
+#'
+#' ### Export REDCap Records in a REDCap Project. Sometimes, records don't exist (empty instrument). Use field names to create empty data structure.
+#'
+#' @param rc_con A REDCap API Connection Object
+#' @param rc_field_names The field names for a REDCap instrument
+#' @keywords internal
+#' @return A data frame containing existing REDCap records, or an empty data frame with the structure of what the records would look like
+#' @export
+#' @importFrom redcapAPI exportRecords
+#' @importFrom dplyr as_tibble select mutate mutate_all
+#' @importFrom magrittr %>% 
+#' @importFrom purrr flatten_dfr
+#' @importFrom rlang .data
+#' @importFrom tidyr drop_na pivot_wider
+#' 
+safe_exportRecords <- function(rc_con, rc_field_names) {
+  tryCatch({
+    redcapAPI::exportRecords(rc_con, factors = F, labels = F) %>% 
+      dplyr::as_tibble() 
+  }, error = function(durrrrr) {
+    rc_field_names %>% 
+      select(.data$export_field_name, .data$choice_value) %>% 
+      mutate(choice_value = map(.x = .data$choice_value, ~ NA)) %>% 
+      pivot_wider(names_from = .data$export_field_name, values_from = .data$choice_value) %>% 
+      flatten_dfr() %>%
+      mutate_all(as.character) %>% 
+      tidyr::drop_na()
+  })
+}
+
+## Render Functions ----
 
 #' Render REDCap Instrument
 #'
@@ -189,7 +224,7 @@ shinyREDCap_integer <- function(id, field_label, value = NULL, ...) {
 #' @rdname render_redcap_instrument
 #' @keywords internal
 #' @export
-render_redcap <- function(shinyREDCap_type, field_name, field_label, required, choices, current_subject_data = NULL ) {
+render_redcap_instrument <- function(shinyREDCap_type, field_name, field_label, required, choices, current_subject_data = NULL ) {
   if(shinyREDCap_type == 'shinyREDCap_text') {   ## Text: textInput 
     shinyREDCap_textInput(id = field_name, field_label = field_label, value = current_subject_data)
   } else if(shinyREDCap_type == 'shinyREDCap_date') {             ## Date: dateInput 
@@ -212,35 +247,3 @@ render_redcap <- function(shinyREDCap_type, field_name, field_label, required, c
     shinyREDCap_textInput(id = field_name, field_label = "This is an unsupported field type", placeholder = shinyREDCap_type)
   }
 }
-
-## REDCap Safe Export
-
-#' Safe Export Records
-#'
-#' ### Export REDCap Records in a REDCap Project. Sometimes, records don't exist (empty instrument). Use field names to create empty data structure.
-#'
-#' @param rc_con A REDCap API Connection Object
-#' @param rc_field_names The field names for a REDCap instrument
-#' @keywords internal
-#' @return A data frame containing existing REDCap records, or an empty data frame with the structure of what the records would look like
-#' @export
-#' @importFrom redcapAPI exportRecords
-#' @importFrom dplyr as_tibble select mutate mutate_all
-#' @importFrom magrittr %>% 
-#' @importFrom purrr flatten_dfr
-#' @importFrom rlang .data
-#' @importFrom tidyr drop_na pivot_wider
-safe_exportRecords <- function(rc_con, rc_field_names) {
-  tryCatch({
-    redcapAPI::exportRecords(rc_con, factors = F, labels = F) %>% 
-      dplyr::as_tibble() 
-    }, error = function(durrrrr) {
-      rc_field_names %>% 
-        select(.data$export_field_name, .data$choice_value) %>% 
-        mutate(choice_value = map(.x = .data$choice_value, ~ NA)) %>% 
-        pivot_wider(names_from = .data$export_field_name, values_from = .data$choice_value) %>% 
-        flatten_dfr() %>%
-        mutate_all(as.character) %>% 
-        tidyr::drop_na()
-    })
-  }
