@@ -251,7 +251,7 @@ redcap_setup_server <- function(id) {
                     )
         })
       
-      observeEvent(c(redcap_setup$rc_records,input$rc_reviewer_field), {
+      observeEvent(c(redcap_setup$rc_records, redcap_setup$rc_meta_data, input$rc_identifier_field, input$rc_reviewer_field), {
         # browser()
         req(redcap_setup$is_connected == 'yes', input$rc_reviewer_field)
         redcap_setup$temp_identifier_field <- redcap_setup$rc_meta_data %>% 
