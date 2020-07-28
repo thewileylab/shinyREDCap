@@ -222,7 +222,7 @@ render_redcap <- function(shinyREDCap_type, field_name, field_label, required, c
 #' @param rc_con A REDCap API Connection Object
 #' @param rc_field_names The field names for a REDCap instrument
 #' @keywords internal
-#' @return A tibble containing existing REDCap records, or an empty data frame with the structure of what the records would look like
+#' @return A data frame containing existing REDCap records, or an empty data frame with the structure of what the records would look like
 #' @export
 #' @importFrom redcapAPI exportRecords
 #' @importFrom dplyr as_tibble select mutate mutate_all

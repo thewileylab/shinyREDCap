@@ -12,7 +12,7 @@ safe_exportRecords(rc_con, rc_field_names)
 \item{rc_field_names}{The field names for a REDCap instrument}
 }
 \value{
-A tibble containing existing REDCap records, or an empty data frame with the structure of what the records would look like
+A data frame containing existing REDCap records, or an empty data frame with the structure of what the records would look like
 }
 \description{
 ### Export REDCap Records in a REDCap Project. Sometimes, records don't exist (empty instrument). Use field names to create empty data structure.
