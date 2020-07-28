@@ -18,7 +18,6 @@ redcap_instrument_ui <- function(id) {
                         width = '100%',
                         status = 'danger',
                         solidHeader = F,
-                        # uiOutput(ns('instrument_select')),
                         selectizeInput(inputId = ns('rc_instrument_selection'),
                                        label = 'Select REDCap Instrument',
                                        choices = NULL
@@ -742,10 +741,6 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         })
       
       ## REDCap Instrument UI Outputs ----
-      # output$instrument_select <- renderUI({ 
-      #   req(instrument_select() )
-      #   instrument_select() 
-      #   })
       output$instrument_ui <- renderUI({ 
         req(redcap_instrument$rc_instrument_ui$shiny_taglist)
         redcap_instrument$rc_instrument_ui$shiny_taglist 
