@@ -576,19 +576,23 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       observeEvent(input$upload, {
         # browser() ### Pause before upload. Evaluate your life choices up until this point.
         message('Determining overwrite status...')
-        server_data <- if(redcap_vars$requires_reviewer == 'yes') {
+        upload_checkData <- if(redcap_vars$requires_reviewer == 'yes') {
           safe_exportRecords(redcap_vars$rc_con, redcap_vars$rc_field_names) %>% 
             filter(!!as.name(redcap_vars$identifier_field) == subject_id() & !!as.name(redcap_vars$reviewer_field) == !!redcap_vars$reviewer)
             } else {
               safe_exportRecords(redcap_vars$rc_con, redcap_vars$rc_field_names) %>% 
                 filter(!!as.name(redcap_vars$identifier_field) == subject_id() )
             }
-        record_integrity <- identical(server_data, redcap_instrument$previous_data)
-        overwrite_existing <- nrow(server_data) > 0
+        record_integrity <- identical(upload_checkData, redcap_instrument$previous_subject_data) ## Has someone else modified the record since you first began?
+        overwrite_existing <- nrow(upload_checkData) > 0
         message('REDCap refresh complete')
         
         if(record_integrity == FALSE) {
-          message('nothing to do')
+          if(redcap_vars$requires_reviewer == 'yes') {
+            message('This record has been modified since you began working on it using your name as a configured reviewer. New changes will not be uploaded to REDCap.') 
+          } else {
+              message('This record has been modified since you began working on it. Please consider configuring a reviewer for this REDCap Project so that multiple people can work on the same subject id without conflict.')
+            }
         } else if(overwrite_existing == TRUE & record_integrity == TRUE) {
           ### Are we overwriting existing REDCap data? Notify the user, else upload to redcap
           confirmSweetAlert(
