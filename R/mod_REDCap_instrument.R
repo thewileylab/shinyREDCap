@@ -590,8 +590,10 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         if(record_integrity == FALSE) {
           if(redcap_vars$requires_reviewer == 'yes') {
             message('This record has been modified since you began working on it using your name as a configured reviewer. New changes will not be uploaded to REDCap.') 
+            ## Add confirmSweetAlert() here
           } else {
               message('This record has been modified since you began working on it. Please consider configuring a reviewer for this REDCap Project so that multiple people can work on the same subject id without conflict.')
+              ## Add confirmSweetAlert() here
             }
         } else if(overwrite_existing == TRUE & record_integrity == TRUE) {
           ### Are we overwriting existing REDCap data? Notify the user, else upload to redcap
