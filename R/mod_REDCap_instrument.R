@@ -136,7 +136,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         })
       
       ## Retrieve Previous REDCap data ----
-      observeEvent(c(redcap_vars$is_configured, redcap_instrument$upload_status), {
+      observeEvent(c(redcap_vars$is_configured, redcap_instrument$upload_status, subject_id()), {
         req(redcap_vars$is_connected == 'yes', redcap_vars$is_configured == 'yes')
         message('Refreshing instrument data from REDCap')
         
