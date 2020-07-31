@@ -757,11 +757,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         redcap_instrument$rc_instrument_ui$shiny_taglist 
         })
       output$redcap_instrument_complte_warn <- renderUI({ instrument_complete_warn() })
-<<<<<<< HEAD
       outputOptions(output, ns('rc_instrument_ui'), suspendWhenHidden = F)
-=======
-      outputOptions(output, 'rc_instrument_ui', suspendWhenHidden = F)
->>>>>>> 24c1c61d1abe2c6fd57b8edc02f828c0f5918bbe
       output$redcap_overwrite <- DT::renderDataTable({ redcap_instrument$overwrite_modal })
       
       
