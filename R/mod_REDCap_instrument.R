@@ -587,9 +587,9 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         if(record_integrity == FALSE) {
           message('Record integrity failure')
           record_integrity_msg <- if(redcap_vars$requires_reviewer == 'yes') {
-                                                 HTML(glue::glue("This record has been modified since you began working on it using your name as a configured reviewer. <br><br><em><font color='#e83a2f'>New changes will not be uploaded to REDCap.</font></em>"))
+                                                 HTML(glue::glue("This record has been modified since you began working on it using your name as a configured reviewer. <br><br><em><font color='#e83a2f'>New values will not be uploaded to REDCap.</font></em>"))
                                                  } else {
-                                                   HTML(glue::glue("This record has been modified since you began working on it. Please consider configuring a reviewer for this REDCap Project so that multiple people can work on the same {redcap_vars$identifier_label} without conflict. <br><br><em><font color='#e83a2f'>New changes will not be uploaded to REDCap.</font></em>"))
+                                                   HTML(glue::glue("This record has been modified since you began working on it. Please consider configuring a reviewer for this REDCap Project so that multiple people can work on the same {redcap_vars$identifier_label} without conflict. <br><br><em><font color='#e83a2f'>New values will not be uploaded to REDCap.</font></em>"))
                                                    }
           confirmSweetAlert(
             session = session,
