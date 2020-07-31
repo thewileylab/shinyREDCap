@@ -4,10 +4,12 @@
 \alias{redcap_setup_server}
 \title{REDCap Setup Server}
 \usage{
-redcap_setup_server(id)
+redcap_setup_server(id, reset)
 }
 \arguments{
 \item{id}{The module namespace}
+
+\item{reset}{If a problem with the instrument is encountered and acknowledged, reset the configuration}
 }
 \value{
 REDCap connection variables and project information

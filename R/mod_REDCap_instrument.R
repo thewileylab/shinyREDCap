@@ -218,12 +218,10 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           ### Export existing Records, filtering to the subject in context  
           } else if (redcap_instrument$is_empty == 'no' & redcap_vars$requires_reviewer == 'no' ) {
             redcap_instrument$previous_data %>% 
-              mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
               filter(!!as.name(redcap_vars$identifier_field ) == subject_id() )
             ### Export existing Records, filtering to the subject AND reviewer in context  
             } else {
               redcap_instrument$previous_data %>% 
-                mutate_all(replace_na, replace = '') %>% # replace all NA values with blank character vectors, so that shiny radio buttons without a previous response will display empty
                 filter(!!as.name(redcap_vars$identifier_field ) == subject_id() & !!as.name(redcap_vars$reviewer_field) == redcap_vars$reviewer )
               }
         
@@ -585,17 +583,28 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             }
         record_integrity <- identical(upload_checkData, redcap_instrument$previous_subject_data) ## Has someone else modified the record since you first began?
         overwrite_existing <- nrow(upload_checkData) > 0
-        message('REDCap refresh complete')
-        
+
         if(record_integrity == FALSE) {
-          if(redcap_vars$requires_reviewer == 'yes') {
-            message('This record has been modified since you began working on it using your name as a configured reviewer. New changes will not be uploaded to REDCap.') 
-            ## Add confirmSweetAlert() here
-          } else {
-              message('This record has been modified since you began working on it. Please consider configuring a reviewer for this REDCap Project so that multiple people can work on the same subject id without conflict.')
-              ## Add confirmSweetAlert() here
-            }
+          message('Record integrity failure')
+          record_integrity_msg <- if(redcap_vars$requires_reviewer == 'yes') {
+                                                 HTML(glue::glue("This record has been modified since you began working on it using your name as a configured reviewer. <br><br><em><font color='#e83a2f'>New changes will not be uploaded to REDCap.</font></em>"))
+                                                 } else {
+                                                   HTML(glue::glue("This record has been modified since you began working on it. Please consider configuring a reviewer for this REDCap Project so that multiple people can work on the same {redcap_vars$identifier_label} without conflict. <br><br><em><font color='#e83a2f'>New changes will not be uploaded to REDCap.</font></em>"))
+                                                   }
+          confirmSweetAlert(
+            session = session,
+            inputId = ns('record_integrity_alert'),
+            title = 'Here be dragons!',
+            text = record_integrity_msg,
+            type = 'error',
+            btn_labels = c("Return to Instrument", 'Reconfigure REDCap'),
+            btn_colors = NULL,
+            closeOnClickOutside = FALSE,
+            showCloseButton = FALSE,
+            html = TRUE
+            )
         } else if(overwrite_existing == TRUE & record_integrity == TRUE) {
+          message('Existing record detected. Overwrite?')
           ### Are we overwriting existing REDCap data? Notify the user, else upload to redcap
           confirmSweetAlert(
             session = session,
@@ -628,6 +637,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
                        !!redcap_vars$reviewer_field := redcap_vars$reviewer
                        )
             } else {
+              message('No conflicts detected. Uploading abstraction data to REDCap')
               redcap_instrument$current_subject_data %>%
                 ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
                 pivot_longer(cols = everything(),
@@ -675,7 +685,10 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
             redcap_instrument$current_subject_instrument_formatted_data_labels <- NULL
             }
         })
+
+      integrity_alert <- reactive({ input$record_integrity_alert })
       
+
       ### Overwrite confirmation confirmed, write to REDCap, else don't
       observeEvent(input$confirm_overwrite, {
         if(input$confirm_overwrite == TRUE) {
@@ -764,7 +777,12 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
           }
         }) 
       
-      return(redcap_instrument)
+      return(
+        list(
+          integrity_alert = integrity_alert,
+          all_review_status = reactive({ redcap_instrument$all_review_status })
+          )
+        )
       }
   )
 }

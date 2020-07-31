@@ -7,6 +7,7 @@
 app_ui <- function(request) {
   fluidPage(
     column(width = 6,
+           actionButton(inputId = 'debug',label = 'Debug'),
            tags$h2("Setup REDCap"),
            # Call the setup UI function
            redcap_setup_ui(id = 'setup_namespace')

@@ -52,6 +52,7 @@ redcap_setup_ui <- function(id) {
 #' REDCap Setup Server
 #'
 #' @param id The module namespace
+#' @param reset If a problem with the instrument is encountered and acknowledged, reset the configuration
 #'
 #' @return REDCap connection variables and project information
 #' @export
@@ -66,7 +67,7 @@ redcap_setup_ui <- function(id) {
 #' @importFrom tidyr separate separate_rows replace_na
 #' @importFrom tibble tibble deframe
 #'
-redcap_setup_server <- function(id) {
+redcap_setup_server <- function(id, reset) {
   moduleServer(
     id,
     function(input, output, session) {
@@ -412,6 +413,27 @@ redcap_setup_server <- function(id) {
         shinyjs::show('redcap_configuration_options_div')
         shinyjs::reset('redcap_configuration_options_div')
         })
+      observeEvent(reset(), {
+        req(reset() )
+        # browser()
+        if(reset() == TRUE){
+          shinyjs::hide('redcap_configured_success_div')
+          redcap_setup$is_configured <- 'no'
+          redcap_setup$temp_identifier_field <- NULL
+          redcap_setup$temp_reviewer_field <- NULL
+          redcap_setup$config_error <- NULL
+          redcap_setup$requires_reviewer <- NULL
+          redcap_setup$identifier_label <- NULL
+          redcap_setup$identifier_field <- NULL
+          redcap_setup$reviewer_label <- NULL
+          redcap_setup$reviewer_field <- NULL
+          redcap_setup$reviewer <- NULL
+          redcap_setup$rc_configured_message <- NULL
+          redcap_setup$rc_records <- safe_exportRecords(redcap_setup$rc_con, redcap_setup$rc_field_names) ### pull records, just in case data was entered
+          shinyjs::show('redcap_configuration_options_div')
+          shinyjs::reset('redcap_configuration_options_div')
+        }
+      })
       
       observeEvent(input$rc_disconnect, { 
         # browser()
