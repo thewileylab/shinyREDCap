@@ -779,7 +779,7 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
       
       return(
         list(
-          integrity_alert = integrity_alert,
+          reset = integrity_alert,
           all_review_status = reactive({ redcap_instrument$all_review_status })
           )
         )
