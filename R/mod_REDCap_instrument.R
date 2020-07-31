@@ -757,7 +757,9 @@ redcap_instrument_server <- function(id, redcap_vars, subject_id) {
         redcap_instrument$rc_instrument_ui$shiny_taglist 
         })
       output$redcap_instrument_complte_warn <- renderUI({ instrument_complete_warn() })
+      outputOptions(output, 'rc_instrument_ui', suspendWhenHidden = F)
       output$redcap_overwrite <- DT::renderDataTable({ redcap_instrument$overwrite_modal })
+      
       
       ## Cleanup ----
       ### Clear instrument complete value on disconnect
