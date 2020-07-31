@@ -9,7 +9,7 @@ app_server <- function( input, output, session ) {
     browser()
   })
   # Call the setup server function
-  setup_vars <- redcap_setup_server(id = 'setup_namespace', reset = instrument_vars$integrity_alert)
+  setup_vars <- redcap_setup_server(id = 'setup_namespace', reset = instrument_vars$reset)
   
   # Encapsulate the subject ID selector as a reactive
   subject_id <- reactive({ input$subject_id }) ## Pass to instrument function
