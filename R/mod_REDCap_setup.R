@@ -78,6 +78,7 @@ redcap_setup_server <- function(id, reset) {
         ### Module Info
         moduleName = 'REDCap',
         moduleType = 'abstraction',
+        ui = shinyREDCap::redcap_setup_ui(id),
         ### Connection Variables
         rc_con = NULL,
         rc_project_info = NULL,
