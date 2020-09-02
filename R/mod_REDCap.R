@@ -154,7 +154,10 @@ redcap_server <- function(id, subject_id) {
         reviewer_label = NULL,
         reviewer_field = NULL,
         reviewer = NULL,
-        is_configured = 'no'
+        is_configured = 'no',
+        ### Instrument Variables
+        all_review_status = NULL,
+        previous_selected_instrument_complete_val = ''
         )
       
       ## REDCap Connection ----
@@ -517,7 +520,6 @@ redcap_server <- function(id, subject_id) {
       redcap_instrument <- reactiveValues(
         selected_instrument_meta = NULL,
         selected_instrument_complete_field = NULL,
-        previous_selected_instrument_complete_val = '',
         selected_instrument_meta_required = NULL,
         previous_data = NULL,
         previous_subject_data = NULL,
@@ -938,17 +940,17 @@ redcap_server <- function(id, subject_id) {
         }
         
         ### Existing Instrument Complete Value
-        redcap_instrument$previous_selected_instrument_complete_val <- redcap_instrument$previous_subject_data %>% 
+        redcap_setup$previous_selected_instrument_complete_val <- redcap_instrument$previous_subject_data %>% 
           pull(redcap_instrument$selected_instrument_complete_field)
         
         selected <- if (redcap_instrument$required_answered == TRUE) {
-          redcap_instrument$previous_selected_instrument_complete_val
+          redcap_setup$previous_selected_instrument_complete_val
         } else if(redcap_instrument$required_answered == FALSE) {
           0
-        } else if (identical(redcap_instrument$previous_selected_instrument_complete_val, character(0)) ) {
+        } else if (identical(redcap_setup$previous_selected_instrument_complete_val, character(0)) ) {
           ''
         } else {
-          redcap_instrument$previous_selected_instrument_complete_val
+          redcap_setup$previous_selected_instrument_complete_val
         }
         updateSelectizeInput(session = session, 
                              inputId = 'survey_complete',
@@ -1200,7 +1202,7 @@ redcap_server <- function(id, subject_id) {
       ### Clear instrument complete value on disconnect
       observeEvent(c(redcap_setup$is_connected, redcap_setup$is_configured), {
         if(redcap_setup$is_connected == 'no' | redcap_setup$is_configured == 'no') {
-          redcap_instrument$previous_selected_instrument_complete_val = ''
+          redcap_setup$previous_selected_instrument_complete_val = ''
           redcap_setup$all_review_status <- NULL
           redcap_instrument$previous_data <- NULL
           redcap_instrument$previous_subject_data <- NULL 
