@@ -520,7 +520,6 @@ redcap_server <- function(id, subject_id) {
         previous_selected_instrument_complete_val = '',
         selected_instrument_meta_required = NULL,
         previous_data = NULL,
-        all_review_status = NULL,
         previous_subject_data = NULL,
         previous_subject_instrument_formatted_data = NULL,
         previous_subject_instrument_formatted_data_labels = NULL,
