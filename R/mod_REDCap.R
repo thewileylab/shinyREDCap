@@ -68,14 +68,11 @@ redcap_instrument_ui <- function(id) {
                         width = '100%',
                         status = 'danger',
                         solidHeader = F,
-                        selectizeInput(inputId = ns('rc_instrument_selection'),
-                                       label = 'Select REDCap Instrument',
-                                       choices = NULL
-                        ),
+                        uiOutput(ns('instrument_selection')),
                         div(style='max-height:600px; overflow-y:scroll',
                             uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f') 
-                        )
-    ),
+                            )
+                        ),
     shinydashboard::box(title = 'Upload to REDCap',
                         width = '100%',
                         status = 'danger',
@@ -539,14 +536,14 @@ redcap_server <- function(id, subject_id) {
       )
       
       ## Select REDCap Instrument ----
-      observeEvent(redcap_setup$rc_instruments_list, {
+      instrument_select <- reactive({
         req(redcap_setup$rc_instruments_list)
-        updateSelectizeInput(session = session,
-                             inputId = 'rc_instrument_selection',
-                             choices = redcap_setup$rc_instruments_list,
-                             server = T
-        )
-      })
+        selectizeInput(inputId = ns('rc_instrument_selection'),
+                       label = 'Select REDCap Instrument',
+                       choices = redcap_setup$rc_instruments_list
+                       )
+        })
+      output$instrument_selection <- renderUI({ instrument_select() })
       
       ## Extract and Prep REDCap Instrument ----
       observeEvent(input$rc_instrument_selection, {
