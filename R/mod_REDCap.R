@@ -409,11 +409,6 @@ redcap_server <- function(id, subject_id) {
       
       ## REDCap Setup Values ----
       redcap_setup <- reactiveValues(
-        ### Module Info
-        moduleName = 'REDCap',
-        moduleType = 'abstraction',
-        setup_ui = shinyREDCap::redcap_setup_ui,
-        instrument_ui = shinyREDCap::redcap_instrument_ui,
         ### Connection Variables
         rc_con = NULL,
         rc_project_info = NULL,
@@ -433,12 +428,22 @@ redcap_server <- function(id, subject_id) {
         identifier_field = NULL,
         reviewer_label = NULL,
         reviewer_field = NULL,
-        reviewer = NULL,
+        reviewer = NULL
+        )
+      
+      ## REDCap Export Values ----
+      redcap_export <- reactiveValues(
+        ### Module Info
+        moduleName = 'REDCap',
+        moduleType = 'abstraction',
+        setup_ui = shinyREDCap::redcap_setup_ui,
+        instrument_ui = shinyREDCap::redcap_instrument_ui,
+        ### Configuration Variables
         is_configured = 'no',
         ### Instrument Variables
         all_review_status = NULL,
         previous_selected_instrument_complete_val = ''
-        )
+      )
       
       ## REDCap Connection ----
       setup <- reactive({
@@ -683,13 +688,13 @@ redcap_server <- function(id, subject_id) {
         redcap_setup$reviewer_label <- input$rc_reviewer_field
         redcap_setup$reviewer_field <- redcap_setup$temp_reviewer_field
         redcap_setup$reviewer <- input$rc_current_reviewer
-        redcap_setup$is_configured <- 'yes'
+        redcap_export$is_configured <- 'yes'
         shinyjs::show('redcap_configured_success_div')
         })
       
-      observeEvent(redcap_setup$is_configured, 
+      observeEvent(redcap_export$is_configured, 
                    ignoreInit = T, {
-                     req(redcap_setup$is_configured == 'yes')
+                     req(redcap_export$is_configured == 'yes')
                      if(redcap_setup$reviewer_field == '(Not Applicable)') {
                        redcap_setup$rc_configured_message <- HTML(
                          paste('<H3>Success!!</H3>',
@@ -737,7 +742,7 @@ redcap_server <- function(id, subject_id) {
       observeEvent(input$rc_reconfig, { 
         # browser()
         shinyjs::hide('redcap_configured_success_div')
-        redcap_setup$is_configured <- 'no'
+        redcap_export$is_configured <- 'no'
         redcap_setup$temp_identifier_field <- NULL
         redcap_setup$temp_reviewer_field <- NULL
         redcap_setup$config_error <- NULL
@@ -757,7 +762,7 @@ redcap_server <- function(id, subject_id) {
         # browser()
         if(input$record_integrity_alert == TRUE){
           shinyjs::hide('redcap_configured_success_div')
-          redcap_setup$is_configured <- 'no'
+          redcap_export$is_configured <- 'no'
           redcap_setup$temp_identifier_field <- NULL
           redcap_setup$temp_reviewer_field <- NULL
           redcap_setup$config_error <- NULL
@@ -778,7 +783,7 @@ redcap_server <- function(id, subject_id) {
         # browser()
         message('REDCap Disconnect')
         shinyjs::hide('redcap_configured_success_div')
-        redcap_setup$is_configured <- 'no'
+        redcap_export$is_configured <- 'no'
         redcap_setup$temp_identifier_field <- NULL
         redcap_setup$temp_reviewer_field <- NULL
         redcap_setup$config_error <- NULL
@@ -854,8 +859,8 @@ redcap_server <- function(id, subject_id) {
       })
       
       ## Retrieve Previous REDCap data ----
-      observeEvent(c(redcap_setup$is_configured, redcap_instrument$upload_status, subject_id()), {
-        req(redcap_setup$is_connected == 'yes', redcap_setup$is_configured == 'yes')
+      observeEvent(c(redcap_export$is_configured, redcap_instrument$upload_status, subject_id()), {
+        req(redcap_setup$is_connected == 'yes', redcap_export$is_configured == 'yes')
         message('Refreshing instrument data from REDCap')
         
         ### Determine if the instrument(s) are empty by exporting the next record id. If 1 is returned, the instrument(s) are empty.
@@ -901,11 +906,11 @@ redcap_server <- function(id, subject_id) {
             select(-.data$reviewer, !!glue::glue('REDCap Record Status:<br>{redcap_setup$reviewer}') := .data$review_status) 
           
           ### Combine other with current and export
-          redcap_setup$all_review_status <- all_other_reviewer_status %>% 
+          redcap_export$all_review_status <- all_other_reviewer_status %>% 
             dplyr::full_join(all_current_reviewer_status) %>% 
             mutate_all(replace_na, '<em>Review Not Started</em>')
         } else {
-          redcap_setup$all_review_status <- redcap_instrument$previous_data %>% 
+          redcap_export$all_review_status <- redcap_instrument$previous_data %>% 
             select('ID' = redcap_setup$identifier_field, contains('_complete')) %>% 
             pivot_longer(cols = contains('_complete'), names_to = 'complete_field', values_to = 'complete_value') %>% 
             mutate(complete_field = stringr::str_remove(.data$complete_field, '_complete'),
@@ -928,7 +933,7 @@ redcap_server <- function(id, subject_id) {
       ## Process Previous Data ----
       ### Filter down existing REDCap data to the subject in context. If no data exists, create empty data structure
       observeEvent(c(subject_id(), redcap_instrument$previous_data), {
-        req(redcap_setup$is_connected == 'yes', redcap_setup$is_configured == 'yes', subject_id())
+        req(redcap_setup$is_connected == 'yes', redcap_export$is_configured == 'yes', subject_id())
         # browser()
         ### Special case, when the REDCap Instrument has no previous data
         redcap_instrument$previous_subject_data <- if(redcap_instrument$is_empty == 'yes') { 
@@ -1025,7 +1030,7 @@ redcap_server <- function(id, subject_id) {
       ## Create REDCap Instrument ---- 
       ### Create a Shiny tagList for each question type present in the instrument
       observeEvent(c(redcap_instrument$selected_instrument_meta, redcap_instrument$previous_subject_instrument_formatted_data), {
-        req(redcap_setup$is_connected == 'yes', redcap_setup$is_configured == 'yes', redcap_instrument$selected_instrument_meta, redcap_instrument$previous_subject_instrument_formatted_data)
+        req(redcap_setup$is_connected == 'yes', redcap_export$is_configured == 'yes', redcap_instrument$selected_instrument_meta, redcap_instrument$previous_subject_instrument_formatted_data)
         redcap_instrument$rc_instrument_ui <- redcap_instrument$selected_instrument_meta %>%
           left_join(redcap_instrument$previous_subject_instrument_formatted_data ) %>% #### add current subject info, if present, to the mix
           mutate( ## mutate shiny tags/inputs
@@ -1220,17 +1225,17 @@ redcap_server <- function(id, subject_id) {
         }
         
         ### Existing Instrument Complete Value
-        redcap_setup$previous_selected_instrument_complete_val <- redcap_instrument$previous_subject_data %>% 
+        redcap_export$previous_selected_instrument_complete_val <- redcap_instrument$previous_subject_data %>% 
           pull(redcap_instrument$selected_instrument_complete_field)
         
         selected <- if (redcap_instrument$required_answered == TRUE) {
-          redcap_setup$previous_selected_instrument_complete_val
+          redcap_export$previous_selected_instrument_complete_val
         } else if(redcap_instrument$required_answered == FALSE) {
           0
-        } else if (identical(redcap_setup$previous_selected_instrument_complete_val, character(0)) ) {
+        } else if (identical(redcap_export$previous_selected_instrument_complete_val, character(0)) ) {
           ''
         } else {
-          redcap_setup$previous_selected_instrument_complete_val
+          redcap_export$previous_selected_instrument_complete_val
         }
         updateSelectizeInput(session = session, 
                              inputId = 'survey_complete',
@@ -1480,10 +1485,10 @@ redcap_server <- function(id, subject_id) {
       
       ## Cleanup ----
       ### Clear instrument complete value on disconnect
-      observeEvent(c(redcap_setup$is_connected, redcap_setup$is_configured), {
-        if(redcap_setup$is_connected == 'no' | redcap_setup$is_configured == 'no') {
-          redcap_setup$previous_selected_instrument_complete_val = ''
-          redcap_setup$all_review_status <- NULL
+      observeEvent(c(redcap_setup$is_connected, redcap_export$is_configured), {
+        if(redcap_setup$is_connected == 'no' | redcap_export$is_configured == 'no') {
+          redcap_export$previous_selected_instrument_complete_val = ''
+          redcap_export$all_review_status <- NULL
           redcap_instrument$previous_data <- NULL
           redcap_instrument$previous_subject_data <- NULL 
           redcap_instrument$previous_subject_instrument_formatted_data <- NULL
@@ -1496,7 +1501,8 @@ redcap_server <- function(id, subject_id) {
         }
       }) 
       
-      return(redcap_setup)
+      ## Return ----
+      return(redcap_export)
       }
   )
 }
