@@ -637,7 +637,7 @@ redcap_server <- function(id, subject_id) {
           } else {
             redcap_setup$config_error <- 'no'
           }
-        if(input$rc_reviewer_field != '(Not Applicable)') {
+        if(input$rc_reviewer_field != '(Not Applicable)' & qty_redcap_records <= qty_identifiers) {
           redcap_setup$requires_reviewer <- 'yes'
         } else if(qty_redcap_records > qty_identifiers) {
           redcap_setup$requires_reviewer <- 'yes'
