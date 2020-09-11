@@ -531,13 +531,13 @@ redcap_server <- function(id, subject_id) {
             deframe()
           redcap_setup$rc_meta_data <- redcapAPI::exportMetaData(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Instrument Meta Data
           redcap_setup$rc_record_id_label <- redcap_setup$rc_meta_data %>% 
-            filter(.data$field_name == redcap_setup$rc_record_id_field)%>% 
+            filter(.data$field_name == redcap_setup$rc_record_id_field) %>% 
             pull(.data$field_label)
           redcap_setup$rc_meta_exploded <- redcap_setup$rc_meta_data %>% 
             select(.data$field_name, .data$field_type, .data$select_choices_or_calculations) %>% 
             mutate(select_choices_or_calculations = case_when(.data$field_type == 'yesno' ~ '1, Yes | 0, No',
                                                               .data$field_type == 'truefalse' ~ '1, True | 0, False',
-                                                              TRUE ~ .data$select_choices_or_calculations
+                                                              TRUE ~ .data$select_choices_or_calculations %>% as.character()
                                                               )
                    ) %>% 
             separate_rows(.data$select_choices_or_calculations, sep = '\\|') %>% 
@@ -636,11 +636,13 @@ redcap_server <- function(id, subject_id) {
           redcap_setup$config_error <- 'yes'
           } else {
             redcap_setup$config_error <- 'no'
-            }
-        if(qty_redcap_records > qty_identifiers) {
+          }
+        if(input$rc_reviewer_field != '(Not Applicable)') {
           redcap_setup$requires_reviewer <- 'yes'
-          } else {
-            redcap_setup$requires_reviewer <- 'no'
+        } else if(qty_redcap_records > qty_identifiers) {
+          redcap_setup$requires_reviewer <- 'yes'
+        } else {
+          redcap_setup$requires_reviewer <- 'no'
           }
         })
       
