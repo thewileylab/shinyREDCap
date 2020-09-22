@@ -49,7 +49,7 @@ ui <- fluidPage(
     column(width = 6,
            tags$h2("Setup REDCap Instrument"),
            # Call the setup UI function
-           redcap_setup_ui(id = 'setup_namespace')
+           redcap_setup_ui(id = 'redcap_namespace')
            ),
     column(width = 6,
            tags$h2("Interact with REDCap Project Instruments"),
@@ -57,18 +57,15 @@ ui <- fluidPage(
            # Create a subject ID selector. This can come from anywhere, 
            selectInput(inputId = 'subject_id',label = 'Subject ID',choices = c('922873','922874', '922875','922876','922877','922878')),
            # Call the redcap instrument UI function
-           redcap_instrument_ui(id = 'instrument_namespace')
+           redcap_instrument_ui(id = 'redcap_namespace')
            )
   )
 
 server <- function(input, output, session) {
-  # Call the setup server function
-  setup_vars <- redcap_setup_server(id = 'setup_namespace', reset = instrument_vars$reset)
-  
   # Encapsulate the subject ID selector as a reactive
   subject_id <- reactive({ input$subject_id }) ## Pass to instrument function
   # Call the instrument server function
-  instrument_vars <- redcap_instrument_server(id = 'instrument_namespace', setup_vars, subject_id )
+  instrument_vars <- redcap_server(id = 'redcap_namespace', subject_id = subject_id )
 }
 
 if (interactive())
