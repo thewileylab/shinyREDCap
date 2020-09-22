@@ -64,7 +64,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   # Encapsulate the subject ID selector as a reactive
   subject_id <- reactive({ input$subject_id }) ## Pass to instrument function
-  # Call the instrument server function
+  # Call the REDCap server function
   instrument_vars <- redcap_server(id = 'redcap_namespace', subject_id = subject_id )
 }
 
