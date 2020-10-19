@@ -1,0 +1,22 @@
+reference:
+  - title: "Package Information"
+    contents:
+      - shinyREDCap
+  - title: "Start Using shinyREDCap"
+    desc: >
+      Execute this function to launch shinyREDCap.
+    contents: 
+      - run_app
+  - title: "Module UI Functions"
+    desc: "Add these functions to the UI portion of your Shiny Application with the appropriate namespace."
+    contents: 
+      - redcap_setup_ui
+      - redcap_instrument_ui
+  - title: "Module Server Function"
+    desc: "Add the server function to the server portion of your Shiny Application with the appropriate namespace."
+    contents:
+      - redcap_server
+  - title: "Supported REDCap Questions/Values"
+    contents: 
+      - redcap_shinywidget_map
+      - redcap_survey_complete

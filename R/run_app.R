@@ -16,3 +16,13 @@ run_app <- function(
     golem_opts = list(...)
   )
 }
+
+#' shinyREDCap: Access REDCap Instruments through R Shiny
+#' 
+#' A shiny module to connect you to a REDCap project and perform a chart review from within an R Shiny Application.
+#' 
+#' 
+#' @docType package
+#' @name shinyREDCap
+NULL
+#> NULL

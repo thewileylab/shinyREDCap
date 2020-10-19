@@ -23,7 +23,7 @@ The goal of shinyREDCap is to allow you to interact with your REDCap Projects fr
 
 ## Installation
 
-You can install the released version of shinyREDCap from [GitHub](https://github.com/) with:
+You can install the released version of shinyREDCap from [GitHub](https://github.com/thewileylab/shinyREDCap) with:
 
 ``` r
 # install.packages("devtools")

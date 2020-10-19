@@ -18,7 +18,7 @@ reducing the potential for error in abstracted information.
 ## Installation
 
 You can install the released version of shinyREDCap from
-[GitHub](https://github.com/) with:
+[GitHub](https://github.com/thewileylab/shinyREDCap) with:
 
 ``` r
 # install.packages("devtools")

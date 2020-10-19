@@ -2,7 +2,7 @@
 % Please edit documentation in R/mod_REDCap.R
 \name{redcap_server}
 \alias{redcap_server}
-\title{REDCap Setup Server}
+\title{REDCap Server}
 \usage{
 redcap_server(id, subject_id)
 }
@@ -15,5 +15,5 @@ redcap_server(id, subject_id)
 REDCap connection variables and project information
 }
 \description{
-REDCap Setup Server
+REDCap Server
 }

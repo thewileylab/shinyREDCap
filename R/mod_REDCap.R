@@ -377,7 +377,7 @@ redcap_instrument_ui <- function(id) {
 }
 
 # Server ----
-#' REDCap Setup Server
+#' REDCap Server
 #'
 #' @param id The module namespace
 #' @param reset If a problem with the instrument is encountered and acknowledged, reset the configuration
