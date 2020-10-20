@@ -395,7 +395,7 @@ redcap_instrument_ui <- function(id) {
 #' @importFrom REDCapR redcap_write
 #' @importFrom rlang .data :=
 #' @importFrom snakecase to_sentence_case
-#' @importFrom shinyjs hide reset show
+#' @importFrom shinyjs disable hide reset show
 #' @importFrom shinyWidgets confirmSweetAlert sendSweetAlert
 #' @importFrom stringr str_trim str_to_lower str_detect
 #' @importFrom tibble deframe rownames_to_column add_row add_column tibble
@@ -519,7 +519,6 @@ redcap_server <- function(id, subject_id) {
         })
       
       observeEvent(redcap_setup$rc_con, {
-        # browser()
         message('Retrieving REDCap project information')
         if (redcap_setup$rc_con %>% class() == 'redcapApiConnection') { ### When correct information is entered, the class of rc_con will be redcapApiConnection
           shinyjs::hide('redcap_connect_div') ### Hide REDCap connection GUI
@@ -600,7 +599,6 @@ redcap_server <- function(id, subject_id) {
         })
       
       observeEvent(c(redcap_setup$rc_records, redcap_setup$rc_meta_data, input$rc_identifier_field, input$rc_reviewer_field), {
-        # browser()
         req(redcap_export$is_connected == 'yes', input$rc_reviewer_field)
         redcap_setup$temp_identifier_field <- redcap_setup$rc_meta_data %>% 
           filter(.data$field_label == input$rc_identifier_field) %>% 
@@ -684,7 +682,6 @@ redcap_server <- function(id, subject_id) {
         })
       
       observeEvent(input$rc_configure_btn, {
-        # browser()
         shinyjs::hide('redcap_configuration_options_div')
         redcap_setup$identifier_label <- input$rc_identifier_field
         redcap_setup$identifier_field <- redcap_setup$temp_identifier_field
@@ -743,7 +740,6 @@ redcap_server <- function(id, subject_id) {
         })
       
       observeEvent(input$rc_reconfig, { 
-        # browser()
         shinyjs::hide('redcap_configured_success_div')
         redcap_export$is_configured <- 'no'
         redcap_setup$temp_identifier_field <- NULL
@@ -762,7 +758,6 @@ redcap_server <- function(id, subject_id) {
         })
       observeEvent(input$record_integrity_alert, {
         req(input$record_integrity_alert )
-        # browser()
         if(input$record_integrity_alert == TRUE){
           shinyjs::hide('redcap_configured_success_div')
           redcap_export$is_configured <- 'no'
@@ -783,7 +778,6 @@ redcap_server <- function(id, subject_id) {
       })
       
       observeEvent(input$rc_disconnect, { 
-        # browser()
         message('REDCap Disconnect')
         shinyjs::hide('redcap_configured_success_div')
         redcap_export$is_configured <- 'no'
@@ -869,9 +863,9 @@ redcap_server <- function(id, subject_id) {
         ### Determine if the instrument(s) are empty by exporting the next record id. If 1 is returned, the instrument(s) are empty.
         redcap_instrument$is_empty <- if(redcapAPI::exportNextRecordName(redcap_setup$rc_con) == 1) {
           'yes'
-        } else {
-          'no'
-        }
+          } else {
+            'no'
+            }
         
         ### Export all project records across all instruments
         redcap_instrument$previous_data <- safe_exportRecords(redcap_setup$rc_con, redcap_setup$rc_field_names)
@@ -937,7 +931,6 @@ redcap_server <- function(id, subject_id) {
       ### Filter down existing REDCap data to the subject in context. If no data exists, create empty data structure
       observeEvent(c(subject_id(), redcap_instrument$previous_data), {
         req(redcap_export$is_connected == 'yes', redcap_export$is_configured == 'yes', subject_id())
-        # browser()
         ### Special case, when the REDCap Instrument has no previous data
         redcap_instrument$previous_subject_data <- if(redcap_instrument$is_empty == 'yes') { 
           redcap_instrument$previous_data
@@ -1075,7 +1068,8 @@ redcap_server <- function(id, subject_id) {
       ## Process Instrument Data ----
       ## Process User Entered Data for REDCap Upload
       observeEvent(c(redcap_instrument$data, input$survey_complete), {
-        # browser()
+        shinyjs::disable(redcap_setup$identifier_field)
+        shinyjs::disable(redcap_setup$reviewer_field)
         req(redcap_instrument$data)
         redcap_instrument$current_subject_data <- redcap_instrument$selected_instrument_meta %>%
           select(.data$shinyREDCap_redcap_widget_function, .data$field_name, .data$select_choices_or_calculations) %>% ## Include select_choices_or_calculations so that all columns can be sent back to REDCap. This allows for overwriting old data with blank ''
@@ -1151,7 +1145,6 @@ redcap_server <- function(id, subject_id) {
       
       ## Determine Changes ----
       observeEvent(c(redcap_instrument$previous_subject_instrument_formatted_data_labels, redcap_instrument$current_subject_instrument_formatted_data_labels), {
-        # browser()
         req(redcap_instrument$previous_subject_instrument_formatted_data_labels, redcap_instrument$current_subject_instrument_formatted_data_labels)
         ### Combine previous and current data to determine what, if anything, has changed   
         redcap_instrument$data_comparison <- redcap_instrument$previous_subject_instrument_formatted_data_labels %>% 
@@ -1186,7 +1179,6 @@ redcap_server <- function(id, subject_id) {
       ## REDCap Upload Button ----
       ### Display the REDCap Upload button if user has changed values
       observeEvent(redcap_instrument$data_is_different, {
-        # browser()
         if(redcap_instrument$data_is_different == TRUE) {
           shinyjs::show('redcap_upload_btn_div')
         } else {
@@ -1197,7 +1189,6 @@ redcap_server <- function(id, subject_id) {
       ## Required Responses ----
       ## Check to see if all required questions have been answered
       observeEvent(c(redcap_instrument$selected_instrument_meta_required, redcap_instrument$current_subject_instrument_formatted_data), {
-        # browser()
         req(redcap_instrument$current_subject_instrument_formatted_data)
         redcap_instrument$qty_required <- nrow(redcap_instrument$selected_instrument_meta_required)
         redcap_instrument$qty_required_answered <- suppressWarnings(redcap_instrument$current_subject_instrument_formatted_data %>% 
@@ -1218,7 +1209,6 @@ redcap_server <- function(id, subject_id) {
       ## REDCap Survey Complete ----
       observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_subject_data, redcap_instrument$required_answered), {
         req(input$rc_instrument_selection, redcap_instrument$previous_subject_data, redcap_instrument$selected_instrument_complete_field)
-        # browser()
         ### Choices to present to user
         choices <- if (redcap_instrument$required_answered == TRUE) {
           shinyREDCap::redcap_survey_complete
@@ -1252,7 +1242,6 @@ redcap_server <- function(id, subject_id) {
       ## Instrument Complete Warning ----
       observeEvent(c(redcap_instrument$data_comparison, redcap_instrument$required_answered), {
         req(redcap_instrument$data_comparison)
-        # browser()
         ### Create text for displaying Instrument Status Changes
         temp_complete_diff <- redcap_instrument$data_comparison %>% 
           ungroup() %>% 
@@ -1298,7 +1287,7 @@ redcap_server <- function(id, subject_id) {
       ## Upload Data to REDCap ----
       ### Here, we decide what to do. 
       observeEvent(input$upload, {
-        # browser() ### Pause before upload. Evaluate your life choices up until this point.
+        ### Pause before upload. Evaluate your life choices up until this point.
         message('Determining overwrite status...')
         upload_checkData <- if(redcap_setup$requires_reviewer == 'yes') {
           safe_exportRecords(redcap_setup$rc_con, redcap_setup$rc_field_names) %>% 
