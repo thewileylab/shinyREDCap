@@ -1,36 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://shinyredcap.thewileylab.org/index.html</loc>
+    <loc>shinyredcap.thewileylab.org/index.html</loc>
   </url>
   <url>
-    <loc>https://shinyredcap.thewileylab.org/reference/redcap_connection.html</loc>
+    <loc>shinyredcap.thewileylab.org/reference/redcap_connection.html</loc>
   </url>
   <url>
-    <loc>https://shinyredcap.thewileylab.org/reference/redcap_instrument_ui.html</loc>
+    <loc>shinyredcap.thewileylab.org/reference/redcap_instrument_ui.html</loc>
   </url>
   <url>
-    <loc>https://shinyredcap.thewileylab.org/reference/redcap_server.html</loc>
+    <loc>shinyredcap.thewileylab.org/reference/redcap_server.html</loc>
   </url>
   <url>
-    <loc>https://shinyredcap.thewileylab.org/reference/redcap_setup_ui.html</loc>
+    <loc>shinyredcap.thewileylab.org/reference/redcap_setup_ui.html</loc>
   </url>
   <url>
-    <loc>https://shinyredcap.thewileylab.org/reference/redcap_shinywidget_map.html</loc>
+    <loc>shinyredcap.thewileylab.org/reference/redcap_shinywidget_map.html</loc>
   </url>
   <url>
-    <loc>https://shinyredcap.thewileylab.org/reference/redcap_survey_complete.html</loc>
+    <loc>shinyredcap.thewileylab.org/reference/redcap_survey_complete.html</loc>
   </url>
   <url>
-    <loc>https://shinyredcap.thewileylab.org/reference/render_redcap_instrument.html</loc>
+    <loc>shinyredcap.thewileylab.org/reference/render_redcap_instrument.html</loc>
   </url>
   <url>
-    <loc>https://shinyredcap.thewileylab.org/reference/run_app.html</loc>
+    <loc>shinyredcap.thewileylab.org/reference/run_app.html</loc>
   </url>
   <url>
-    <loc>https://shinyredcap.thewileylab.org/reference/safe_exportRecords.html</loc>
+    <loc>shinyredcap.thewileylab.org/reference/safe_exportRecords.html</loc>
   </url>
   <url>
-    <loc>https://shinyredcap.thewileylab.org/reference/shinyREDCap.html</loc>
+    <loc>shinyredcap.thewileylab.org/reference/shinyREDCap.html</loc>
   </url>
 </urlset>

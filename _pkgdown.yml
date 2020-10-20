@@ -1,4 +1,4 @@
-url: https://shinyredcap.thewileylab.org
+url: shinyredcap.thewileylab.org
 destination: docs
 reference:
   - title: "Package Information"
