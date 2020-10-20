@@ -380,7 +380,7 @@ redcap_instrument_ui <- function(id) {
 #' REDCap Server
 #'
 #' @param id The module namespace
-#' @param reset If a problem with the instrument is encountered and acknowledged, reset the configuration
+#' @param subject_id A reactive expression containing a subject identifier
 #'
 #' @return REDCap connection variables and project information
 #' @export

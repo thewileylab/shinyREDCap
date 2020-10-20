@@ -9,7 +9,7 @@ redcap_server(id, subject_id)
 \arguments{
 \item{id}{The module namespace}
 
-\item{reset}{If a problem with the instrument is encountered and acknowledged, reset the configuration}
+\item{subject_id}{A reactive expression containing a subject identifier}
 }
 \value{
 REDCap connection variables and project information
