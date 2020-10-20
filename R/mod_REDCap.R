@@ -1092,7 +1092,7 @@ redcap_server <- function(id, subject_id) {
           ) %>%
           select(.data$inputID, .data$current_value) %>%
           unnest(cols = .data$current_value, keep_empty = T) %>% ## in the case that all checkbox questions are de-selected, this keeps empty values, but stores them as NA.
-          ## This mutate modifys values to blanks, except for the special case when the record ID is NA. We would like to trop this value, if NA.
+          ## This mutates values to blanks, except for the special case when the record ID is NA. We would like to drop this value, if NA.
           mutate(current_value = map2_chr(.x = .data$inputID, .y = .data$current_value, ~ case_when(str_detect(string = .x,pattern = !!redcap_setup$rc_record_id_field) & is.na(.y) ~ .y,
                                                                                                     is.na(.y) ~ '',
                                                                                                     TRUE ~ .y)
