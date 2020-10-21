@@ -227,7 +227,7 @@ shinyREDCap_integer <- function(id, field_label, value = NULL, ...) {
 #' @keywords internal
 #' @export
 render_redcap_instrument <- function(shinyREDCap_type, field_name, field_label, required, choices, current_subject_data = NULL ) {
-  if(shinyREDCap_type == 'shinyREDCap_text') {   ## Text: textInput 
+  if(shinyREDCap_type == 'shinyREDCap_text') {                    ## Text: textInput 
     shinyREDCap_textInput(id = field_name, field_label = field_label, value = current_subject_data)
   } else if(shinyREDCap_type == 'shinyREDCap_date') {             ## Date: dateInput 
     shinyREDCap_dateInput(id = field_name, field_label = field_label, value = current_subject_data)
@@ -245,8 +245,8 @@ render_redcap_instrument <- function(shinyREDCap_type, field_name, field_label, 
     shinyREDCap_notes(id = field_name, field_label = field_label, value = current_subject_data)
   } else if (shinyREDCap_type == 'shinyREDCap_integer') {         ## Integer: numericInput 
     shinyREDCap_integer(id = field_name, field_label = field_label, value = current_subject_data)
-  } else {                                                ## Unsupported input 
-    shinyREDCap_textInput(id = field_name, field_label = "This is an unsupported field type", placeholder = shinyREDCap_type)
+  } else {                                                        ## Unsupported input 
+    shinyREDCap_textInput(id = field_name, field_label = "This is an unsupported field type", placeholder = field_label)
   }
 }
 
@@ -1033,27 +1033,28 @@ redcap_server <- function(id, subject_id) {
         redcap_instrument$rc_instrument_ui <- redcap_instrument$selected_instrument_meta %>%
           left_join(redcap_instrument$previous_subject_instrument_formatted_data ) %>% #### add current subject info, if present, to the mix
           mutate( ## mutate shiny tags/inputs
+            shinyREDCap_redcap_widget_function = tidyr::replace_na(.data$shinyREDCap_redcap_widget_function, ''),
             shiny_header = map(.data$section_header, h3),
             shiny_field_label = case_when(is.na(.data$required_field) ~ .data$field_label,
                                           TRUE ~ paste(.data$field_label,"<br/><font color='#FC0020'>* must provide value</font>")
-            ),
+                                          ),
             shiny_input = pmap(list(shinyREDCap_type = .data$shinyREDCap_redcap_widget_function,
                                     field_name = ns(.data$field_name),
                                     field_label = .data$shiny_field_label,
                                     required = .data$required_field,
                                     choices = .data$select_choices_or_calculations,
                                     current_subject_data = .data$previous_value 
-            ),
-            render_redcap_instrument
-            ),
+                                    ),
+                               render_redcap_instrument
+                               ),
             shiny_note = map(.data$field_note, tags$sub),
             shiny_taglist = pmap(list(.data$shiny_header,
                                       .data$shiny_input,
                                       .data$shiny_note
-            ),
-            tagList
+                                      ),
+                                 tagList
+                                 )
             )
-          )
         message('Monitoring Instrument for changes...')
       })
       
