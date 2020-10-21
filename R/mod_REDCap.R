@@ -1117,12 +1117,12 @@ redcap_server <- function(id, subject_id) {
           redcap_instrument$current_subject_data %>%
             # Turn wide data from RedCAP to long, collapsing checkbox type questions along the way
             pivot_longer(cols = contains('___'),names_to = 'checkbox_questions',values_to = 'value_present') %>%
-            arrange(.data$checkbox_questions) %>% ## Ensure that order is correct so that list variables will have responses in the correct place.
             separate(.data$checkbox_questions, into = c('checkbox_questions','checkbox_value'), sep = '___') %>% # Separate value from column name
+            arrange(as.numeric(.data$checkbox_value)) %>% ## Ensure that order is correct so that list variables will have responses in the correct place.
             mutate(checkbox_value = map2_chr(.x = .data$checkbox_value, .y = .data$value_present, ~ case_when(.y == '' ~ '',
                                                                                                               TRUE ~ .x)
-            )
-            ) %>%
+                                             )
+                   ) %>%
             select(-.data$value_present) %>% # remove value presence variable
             pivot_wider(names_from = .data$checkbox_questions, values_from = .data$checkbox_value, values_fn = list(checkbox_value = list)) %>% # pivot wider, utilizing list to preserve column types. Having collapsed the checkbox quesions, we now have a the original field_name as a joinable variable
             pivot_longer(cols = everything(), names_to = 'field_name', values_to = 'current_value', values_transform = list(current_value = as.list), values_ptypes = list(current_value = list())) # Pivot longer, utilizing a list as the column type to avoid variable coercion
@@ -1160,7 +1160,6 @@ redcap_server <- function(id, subject_id) {
           ) %>% 
           filter(.data$field_name != redcap_setup$rc_record_id_field & diff == TRUE) ## This will be different when entering new data
         redcap_instrument$data_is_different <- nrow(redcap_instrument$data_comparison) > 0
-        
         
         ### Create modal for displaying changes
         redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
