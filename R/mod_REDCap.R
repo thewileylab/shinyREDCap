@@ -574,14 +574,17 @@ redcap_server <- function(id, subject_id) {
       ## REDCap Configuration ----
       redcap_project_record_id_selectInput <- reactive({
         req(redcap_setup$rc_meta_data )
-        selectInput(inputId = ns('rc_identifier_field'),
-                    label = 'Which variable contains your record identifier (e.g., MRN, subject ID)?',
-                    choices = redcap_setup$rc_meta_data %>%
-                      slice(-1) %>% ### Remove the REDCap Identifier Field
-                      filter(.data$field_type == 'text') %>% 
-                      select(.data$field_label) %>%
-                      deframe()
-                    )
+        selectizeInput(inputId = ns('rc_identifier_field'),
+                       label = 'Which variable contains your record identifier (e.g., MRN, subject ID)?',
+                       choices = redcap_setup$rc_meta_data %>%
+                         slice(-1) %>% ### Remove the REDCap Identifier Field
+                         filter(.data$field_type == 'text') %>% 
+                         select(.data$field_label) %>%
+                         deframe(),
+                       options = list(create = FALSE,
+                                      placeholder = 'Please add a record identifier question to REDCap Instrument.'
+                                      )
+                       )
         })
       
       redcap_project_reviewer_id_selectInput <- reactive({
