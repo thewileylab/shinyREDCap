@@ -386,19 +386,19 @@ redcap_instrument_ui <- function(id) {
 #' @return REDCap connection variables and project information
 #' @export
 #' 
-#' @importFrom dplyr arrange as_tibble case_when coalesce contains count desc distinct everything filter full_join group_by inner_join left_join mutate mutate_all mutate_if pull rename relocate select slice summarise ungroup
+#' @importFrom dplyr arrange as_tibble case_when coalesce contains count desc distinct everything filter full_join group_by inner_join left_join mutate mutate_all mutate_at mutate_if pull rename relocate select slice summarise ungroup vars
 #' @importFrom DT datatable  
 #' @importFrom glue glue glue_collapse
 #' @importFrom httr config   
 #' @importFrom magrittr %>% 
-#' @importFrom purrr flatten_chr flatten_dfr map map2 map2_chr pmap modify_depth
+#' @importFrom purrr flatten_chr flatten_dfr keep map map2 map2_chr pmap modify_depth
 #' @importFrom redcapAPI exportProjectInformation exportFieldNames exportInstruments exportMetaData exportNextRecordName
 #' @importFrom REDCapR redcap_write
 #' @importFrom rlang .data :=
 #' @importFrom snakecase to_sentence_case
 #' @importFrom shinyjs disable hide reset show
 #' @importFrom shinyWidgets confirmSweetAlert sendSweetAlert
-#' @importFrom stringr str_trim str_to_lower str_detect
+#' @importFrom stringr str_trim str_to_lower str_detect str_split
 #' @importFrom tibble deframe rownames_to_column add_row add_column tibble
 #' @importFrom tidyr drop_na pivot_wider pivot_longer separate separate_rows replace_na unite unnest
 #'
@@ -1167,7 +1167,7 @@ redcap_server <- function(id, subject_id) {
           left_join(redcap_instrument$selected_instrument_meta %>% select(.data$field_name, .data$field_label)) %>% 
           select('Question' = .data$field_label, 'Previous Value' = .data$previous_html, 'New Value' = .data$current_html) %>%
           filter(.data$Question != is.na(.data$Question)) %>% ### Remove instrument complete differences from display modal
-          dplyr::mutate_at(dplyr::vars(-Question), stringr::str_split, '<br>') %>% 
+          dplyr::mutate_at(dplyr::vars(-.data$Question), stringr::str_split, '<br>') %>% 
           mutate('Previous Value' = purrr::map(.data$`Previous Value`, 
                                           ~purrr::keep(.x, ~ stringr::str_detect(.x, '') ) 
                                           ),
