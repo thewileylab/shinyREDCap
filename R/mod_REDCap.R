@@ -1167,13 +1167,27 @@ redcap_server <- function(id, subject_id) {
           left_join(redcap_instrument$selected_instrument_meta %>% select(.data$field_name, .data$field_label)) %>% 
           select('Question' = .data$field_label, 'Previous Value' = .data$previous_html, 'New Value' = .data$current_html) %>%
           filter(.data$Question != is.na(.data$Question)) %>% ### Remove instrument complete differences from display modal
+          dplyr::mutate_at(dplyr::vars(-Question), stringr::str_split, '<br>') %>% 
+          mutate('Previous Value' = purrr::map(.data$`Previous Value`, 
+                                          ~purrr::keep(.x, ~ stringr::str_detect(.x, '') ) 
+                                          ),
+                 'Previous Value' = purrr::map(.data$`Previous Value`,
+                                          ~glue::glue_collapse(.x, sep = '<br><br>')
+                                          ),
+                 'New Value' = purrr::map(.data$`New Value`, 
+                                          ~purrr::keep(.x, ~ stringr::str_detect(.x, '') ) 
+                                          ),
+                 'New Value' = purrr::map(.data$`New Value`,
+                                          ~glue::glue_collapse(.x, sep = '<br><br>')
+                                          )
+                 ) %>% 
           DT::datatable(
             options = list(scrollX = TRUE,
                            paging = FALSE,
                            autoWidth = TRUE,
                            columnDefs = list(list(width = '40%', targets = 0)),
                            sDom  = '<"top">lrt<"bottom">ip'
-            ),
+                           ),
             rownames = F, 
             escape = F,
             class = 'cell-border strip hover'
