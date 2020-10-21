@@ -84,13 +84,13 @@
 <h2 class="hasAnchor">
 <a href="#usage" class="anchor"></a>Usage</h2>
 <p>To connect shinyREDCap to your REDCap Instruments, users must have read and write access to a previously created REDCap project. Additionally, users must request an API key.</p>
-<p>To get a feel for the modules, you may run the demo application:</p>
+<p>To get a feel for the module, you may run the demo application:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit">
 <span class="fu">shinyREDCap</span><span class="fu">::</span><span class="fu"><a href="reference/run_app.html">run_app</a></span><span class="op">(</span><span class="op">)</span></pre></div>
 <p>To integrate shinyREDCap into your own Shiny application place <code><a href="reference/redcap_setup_ui.html">redcap_setup_ui()</a></code>, <code><a href="reference/redcap_instrument_ui.html">redcap_instrument_ui()</a></code> and corresponding server modules into the application’s ui and server functions as in the example below:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit">
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="http://shiny.rstudio.com">shiny</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/thewileylab/shinyREDCap">shinyREDCap</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://shinyredcap.thewileylab.org/">shinyREDCap</a></span><span class="op">)</span>
 <span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://shiny.rstudio.com/reference/shiny/latest/fluidPage.html">fluidPage</a></span><span class="op">(</span>
     <span class="fu"><a href="https://shiny.rstudio.com/reference/shiny/latest/column.html">column</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">6</span>,
            <span class="va">tags</span><span class="op">$</span><span class="fu">h2</span><span class="op">(</span><span class="st">"Setup REDCap Instrument"</span><span class="op">)</span>,

@@ -31,7 +31,7 @@ To connect shinyREDCap to your REDCap Instruments, users must have read
 and write access to a previously created REDCap project. Additionally,
 users must request an API key.
 
-To get a feel for the modules, you may run the demo application:
+To get a feel for the module, you may run the demo application:
 
 ``` r
 shinyREDCap::run_app()
