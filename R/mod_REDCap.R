@@ -246,7 +246,7 @@ render_redcap_instrument <- function(shinyREDCap_type, field_name, field_label, 
   } else if (shinyREDCap_type == 'shinyREDCap_integer') {         ## Integer: numericInput 
     shinyREDCap_integer(id = field_name, field_label = field_label, value = current_subject_data)
   } else {                                                        ## Unsupported input 
-    HTML(glue::glue('<strong>{field_label}</strong><br>This is an unsupported field type.'))
+    HTML(glue::glue('<font color="#ababab"><strong>{field_label}</strong><br>This is an unsupported field type.</font>'))
   }
 }
 
