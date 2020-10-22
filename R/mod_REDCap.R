@@ -280,7 +280,7 @@ render_redcap_instrument <- function(shinyREDCap_type, field_name, field_label, 
 #'   \item{shinyREDCap_widget_function}{shinyREDCap function to use when mapping to native Shiny widget}
 #'   ...
 #' }
-"redcap_shinywidget_map"
+"redcap_widget_map"
 
 # Setup UI ----
 #' REDCap Setup UI
@@ -547,7 +547,7 @@ redcap_server <- function(id, subject_id) {
             mutate_all(replace_na, replace = '')
           redcap_setup$rc_records <- safe_exportRecords(redcap_setup$rc_con, redcap_setup$rc_field_names)
           redcap_setup$unsupported_fields <- redcap_setup$rc_meta_data %>%
-            left_join(shinyREDCap::redcap_shinywidget_map, 
+            left_join(shinyREDCap::redcap_widget_map, 
                       by = c('field_type' = 'redcap_field_type', 'text_validation_type_or_show_slider_number' = 'redcap_field_val')
                       ) %>% 
               select('Instrument' = .data$form_name, 'Field Type' = .data$field_type, 'Field Label' = .data$field_label, 'Field Name' = .data$field_name, 'Validation' = .data$text_validation_type_or_show_slider_number, .data$shinyREDCap_widget_function) %>% 
@@ -921,7 +921,7 @@ redcap_server <- function(id, subject_id) {
           ### assuming that they will be all character values, so we need to perform explicit casting to continue with that
           ### assumption.
           mutate_if(is.logical, as.character) %>%
-          left_join(shinyREDCap::redcap_shinywidget_map,
+          left_join(shinyREDCap::redcap_widget_map,
                     by = c('field_type' = 'redcap_field_type', 'text_validation_type_or_show_slider_number' = 'redcap_field_val')
                     ) %>%
           mutate(section_header = coalesce(.data$section_header, ''),

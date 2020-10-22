@@ -20,5 +20,5 @@ reference:
       - redcap_server
   - title: "Supported REDCap Questions/Values"
     contents: 
-      - redcap_shinywidget_map
+      - redcap_widget_map
       - redcap_survey_complete
