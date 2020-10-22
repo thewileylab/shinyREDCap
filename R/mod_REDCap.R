@@ -367,7 +367,7 @@ redcap_instrument_ui <- function(id) {
                                            choices = NULL
                             )
                         ),
-                        uiOutput(ns('redcap_instrument_complte_warn')),
+                        uiOutput(ns('redcap_instrument_complete_warn')),
                         shinyjs::hidden(
                           div(id = ns('redcap_upload_btn_div'),
                               actionButton(inputId = ns('upload'), label = 'Upload to REDCap')
@@ -795,12 +795,10 @@ redcap_server <- function(id, subject_id) {
         redcap_setup$reviewer_field <- NULL
         redcap_setup$reviewer <- NULL
         redcap_setup$rc_configured_message <- NULL
+        selected_instrument_complete_field <- NULL
         shinyjs::reset('redcap_configure_div')
         shinyjs::hide('redcap_configure_div')
         })
-      
-      ## Return
-      # return(redcap_setup)
       
       ## REDCap Instrument Values ----  
       redcap_instrument <- reactiveValues(
@@ -1419,14 +1417,11 @@ redcap_server <- function(id, subject_id) {
         }
       })
       
-      # integrity_alert <- reactive({ input$record_integrity_alert })
-      
-      
       ### Overwrite confirmation confirmed, write to REDCap, else don't
       observeEvent(input$confirm_overwrite, {
         if(input$confirm_overwrite == TRUE) {
           message('Overwriting existing abstraction data in REDCap')
-          ### WIP Add instrument complete status
+          ### Add instrument complete status
           redcap_instrument$overwrite_data <- if(redcap_setup$requires_reviewer == 'yes') {
             redcap_instrument$current_subject_data %>% 
               ### Only upload non-empty data. REDCap hates empty data. Turn empty to NA to 'reset' in REDCap
@@ -1489,7 +1484,7 @@ redcap_server <- function(id, subject_id) {
         req(redcap_instrument$rc_instrument_ui$shiny_taglist)
         redcap_instrument$rc_instrument_ui$shiny_taglist 
       })
-      output$redcap_instrument_complte_warn <- renderUI({ instrument_complete_warn() })
+      output$redcap_instrument_complete_warn <- renderUI({ instrument_complete_warn() })
       output$redcap_overwrite <- DT::renderDataTable({ redcap_instrument$overwrite_modal })
       
       
