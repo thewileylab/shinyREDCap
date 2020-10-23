@@ -419,6 +419,8 @@ redcap_server <- function(id, subject_id) {
         rc_meta_data = NULL,
         rc_record_id_label = NULL,
         rc_records = NULL,
+        unsupported_fields = NULL,
+        unsupported_fields_modal = NULL,
         ### Configuration Variables
         temp_identifier_field = NULL,
         temp_reviewer_field = NULL,
@@ -428,7 +430,8 @@ redcap_server <- function(id, subject_id) {
         identifier_field = NULL,
         reviewer_label = NULL,
         reviewer_field = NULL,
-        reviewer = NULL
+        reviewer = NULL,
+        rc_configured_message = NULL
         )
       
       ## REDCap Export Values ----
@@ -552,10 +555,11 @@ redcap_server <- function(id, subject_id) {
                       ) %>% 
               select('Instrument' = .data$form_name, 'Field Type' = .data$field_type, 'Field Label' = .data$field_label, 'Field Name' = .data$field_name, 'Validation' = .data$text_validation_type_or_show_slider_number, .data$shinyREDCap_widget_function) %>% 
               filter(is.na(.data$shinyREDCap_widget_function))
+          redcap_export$is_connected <- 'yes' ### Report REDCap is connected
           message('Complete')
           ## If unsupported field types are detected, prompt user for action.
           if(nrow(redcap_setup$unsupported_fields) > 0 ) {
-            redcap_setup$unsupported_field_modal <- redcap_setup$unsupported_fields %>% 
+            redcap_setup$unsupported_fields_modal <- redcap_setup$unsupported_fields %>% 
               select(-.data$shinyREDCap_widget_function) %>% 
               DT::datatable(
                 options = list(scrollX = TRUE,
@@ -584,7 +588,6 @@ redcap_server <- function(id, subject_id) {
               html = TRUE
               )
           } else {
-            redcap_export$is_connected <- 'yes' ### Report REDCap is connected
             shinyjs::show('redcap_configure_div') ### Show REDCap configure GUI
             shinyjs::show('redcap_configuration_options_div')
             }
@@ -592,38 +595,9 @@ redcap_server <- function(id, subject_id) {
         })
       
       observeEvent(input$unsupported_fields, {
-        req(input$unsupported_fields)
-        if(input$unsupported_fields == TRUE) {
-          redcap_setup$rc_con <- NULL ### Clear REDCap connection info
-          redcap_setup$rc_project_info <- NULL ### Clear REDCap Project Information
-          redcap_setup$rc_field_names <- NULL ### Clear REDCap Field Names
-          redcap_setup$rc_record_id_field <- NULL ### Clear REDCap Record ID Field
-          redcap_setup$rc_instruments_tbl <- NULL ### Clear REDCap Instruments
-          redcap_setup$rc_instruments_list <- NULL ### Clear REDCap Instruments List
-          redcap_setup$rc_meta_data <- NULL ### Clear REDCap meta data
-          redcap_setup$rc_record_id_label <- NULL ### Clear REDCap Record ID Label
-          redcap_setup$rc_meta_exploded <- NULL ### Clear the exploded REDCap meta data
-          redcap_setup$rc_records <- NULL ### Clear initially collected REDCap Records
-          redcap_export$is_connected <- 'no' ### Report REDCap is disconnected
-          redcap_export$is_configured <- 'no'
-          redcap_setup$temp_identifier_field <- NULL
-          redcap_setup$temp_reviewer_field <- NULL
-          redcap_setup$config_error <- NULL
-          redcap_setup$requires_reviewer <- NULL
-          redcap_setup$identifier_label <- NULL
-          redcap_setup$identifier_field <- NULL
-          redcap_setup$reviewer_label <- NULL
-          redcap_setup$reviewer_field <- NULL
-          redcap_setup$reviewer <- NULL
-          redcap_setup$rc_configured_message <- NULL
-          selected_instrument_complete_field <- NULL
-          shinyjs::hide('redcap_configured_success_div')
-          shinyjs::show('redcap_connect_div') ### Show REDCap connection GUI
-          shinyjs::reset('redcap_connect_div') ### Reset inputs on REDCap connection GUI
-          shinyjs::reset('redcap_configure_div')
-          shinyjs::hide('redcap_configure_div') ### Hide REDCap configuration GUI
-          message('REDCap Disconnect')
-          }
+        req(input$unsupported_fields == TRUE)
+        redcap_export$is_connected <- 'no' ### Report REDCap is disconnected
+        redcap_export$is_configured <- 'no'
         })
       
       observeEvent(input$unsupported_fields, {
@@ -636,35 +610,8 @@ redcap_server <- function(id, subject_id) {
       
       observeEvent(input$rc_disconnect, { ### On REDCap disconnect
         if ( input$rc_disconnect == 0 ) return()
-        redcap_setup$rc_con <- NULL ### Clear REDCap connection info
-        redcap_setup$rc_project_info <- NULL ### Clear REDCap Project Information
-        redcap_setup$rc_field_names <- NULL ### Clear REDCap Field Names
-        redcap_setup$rc_record_id_field <- NULL ### Clear REDCap Record ID Field
-        redcap_setup$rc_instruments_tbl <- NULL ### Clear REDCap Instruments
-        redcap_setup$rc_instruments_list <- NULL ### Clear REDCap Instruments List
-        redcap_setup$rc_meta_data <- NULL ### Clear REDCap meta data
-        redcap_setup$rc_record_id_label <- NULL ### Clear REDCap Record ID Label
-        redcap_setup$rc_meta_exploded <- NULL ### Clear the exploded REDCap meta data
-        redcap_setup$rc_records <- NULL ### Clear initially collected REDCap Records
         redcap_export$is_connected <- 'no' ### Report REDCap is disconnected
         redcap_export$is_configured <- 'no'
-        redcap_setup$temp_identifier_field <- NULL
-        redcap_setup$temp_reviewer_field <- NULL
-        redcap_setup$config_error <- NULL
-        redcap_setup$requires_reviewer <- NULL
-        redcap_setup$identifier_label <- NULL
-        redcap_setup$identifier_field <- NULL
-        redcap_setup$reviewer_label <- NULL
-        redcap_setup$reviewer_field <- NULL
-        redcap_setup$reviewer <- NULL
-        redcap_setup$rc_configured_message <- NULL
-        selected_instrument_complete_field <- NULL
-        shinyjs::hide('redcap_configured_success_div')
-        shinyjs::show('redcap_connect_div') ### Show REDCap connection GUI
-        shinyjs::reset('redcap_connect_div') ### Reset inputs on REDCap connection GUI
-        shinyjs::reset('redcap_configure_div')
-        shinyjs::hide('redcap_configure_div') ### Hide REDCap configuration GUI
-        message('REDCap Disconnect')
         })
       
       ## REDCap Configuration ----
@@ -837,7 +784,7 @@ redcap_server <- function(id, subject_id) {
           actionButton(inputId = ns('rc_reconfig'),label = 'Reconfigure REDCap')
           )
         })
-      output$redcap_unsupported_fields <- DT::renderDataTable(redcap_setup$unsupported_field_modal)
+      output$redcap_unsupported_fields <- DT::renderDataTable(redcap_setup$unsupported_fields_modal)
       
       observeEvent(input$rc_reconfig, { 
         shinyjs::hide('redcap_configured_success_div')
@@ -1148,6 +1095,7 @@ redcap_server <- function(id, subject_id) {
       ## Process Instrument Data ----
       ## Process User Entered Data for REDCap Upload
       observeEvent(c(redcap_instrument$data, input$survey_complete), {
+        req(redcap_instrument$selected_instrument_complete_field)
         shinyjs::disable(redcap_setup$identifier_field)
         shinyjs::disable(redcap_setup$reviewer_field)
         req(redcap_instrument$data)
@@ -1566,19 +1514,70 @@ redcap_server <- function(id, subject_id) {
       
       
       ## Cleanup ----
-      ### Clear instrument complete value on disconnect
+      ### Reset Setup Values on disconnect
+      observeEvent(redcap_export$is_connected, ignoreInit = T, {
+        if(redcap_export$is_connected == 'no') {
+          ### Reset Connection Variables
+          redcap_setup$rc_con <- NULL
+          redcap_setup$rc_project_info <- NULL
+          redcap_setup$rc_field_names <- NULL
+          redcap_setup$rc_record_id_field <- NULL
+          redcap_setup$rc_instruments_tbl <- NULL
+          redcap_setup$rc_meta_data <- NULL
+          redcap_setup$rc_record_id_label <- NULL
+          redcap_setup$rc_records <- NULL
+          redcap_setup$unsupported_fields <- NULL
+          redcap_setup$unsupported_fields_modal <- NULL
+          ### Reset Configuration Variables
+          redcap_setup$temp_identifier_field <- NULL
+          redcap_setup$temp_reviewer_field <- NULL
+          redcap_setup$config_error <- NULL
+          redcap_setup$requires_reviewer <- NULL
+          redcap_setup$identifier_label <- NULL
+          redcap_setup$identifier_field <- NULL
+          redcap_setup$reviewer_label <- NULL
+          redcap_setup$reviewer_field <- NULL
+          redcap_setup$reviewer <- NULL
+          redcap_setup$rc_configured_message <- NULL
+          ### Reset UI
+          shinyjs::hide('redcap_configured_success_div')
+          shinyjs::show('redcap_connect_div') ### Show REDCap connection GUI
+          shinyjs::reset('redcap_connect_div') ### Reset inputs on REDCap connection GUI
+          shinyjs::reset('redcap_configure_div')
+          shinyjs::hide('redcap_configure_div') ### Hide REDCap configuration GUI
+          message('REDCap Disconnect')
+        }
+      })
+      
+      
+      ### Reset Instrument/Export Values on disconnect or reconfigure
       observeEvent(c(redcap_export$is_connected, redcap_export$is_configured), {
         if(redcap_export$is_connected == 'no' | redcap_export$is_configured == 'no') {
-          redcap_export$previous_selected_instrument_complete_val = ''
+          ### Reset Exports
           redcap_export$all_review_status <- NULL
-          redcap_instrument$previous_data <- NULL
-          redcap_instrument$previous_subject_data <- NULL 
-          redcap_instrument$previous_subject_instrument_formatted_data <- NULL
-          redcap_instrument$previous_subject_instrument_formatted_data_labels <- NULL
-          redcap_instrument$current_subject_data <- NULL 
+          redcap_export$previous_selected_instrument_complete_val = ''
+          ### Instrument Metadata
+          redcap_instrument$selected_instrument_meta <- NULL
+          redcap_instrument$selected_instrument_complete_field <- NULL
+          redcap_instrument$selected_instrument_meta_required <- NULL
+          ### Instrument Data
+          redcap_instrument$data <- NULL
+          redcap_instrument$current_record_id <- NULL
+          redcap_instrument$current_subject_data <- NULL
           redcap_instrument$current_subject_instrument_formatted_data <- NULL
           redcap_instrument$current_subject_instrument_formatted_data_labels <- NULL
+          redcap_instrument$previous_data <- NULL
+          redcap_instrument$previous_subject_data <- NULL
+          redcap_instrument$previous_subject_instrument_formatted_data <- NULL
+          redcap_instrument$previous_subject_instrument_formatted_data_labels <- NULL
+          ### Instrument Data
           redcap_instrument$rc_instrument_ui <- NULL
+          redcap_instrument$data_comparison <- NULL
+          redcap_instrument$data_is_different <- NULL
+          redcap_instrument$required_answered <- FALSE
+          redcap_instrument$overwrite_modal <- NULL
+          redcap_instrument$upload_status <- NULL
+          ### Reset UI
           shinyjs::hide('redcap_upload_btn_div')
           }
         }) 
