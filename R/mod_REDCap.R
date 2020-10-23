@@ -408,7 +408,7 @@ redcap_server <- function(id, subject_id) {
     function(input, output, session) {
       ns <- session$ns
       
-      ## REDCap Setup Values ----
+      ## Setup Values ----
       redcap_setup <- reactiveValues(
         ### Connection Variables
         rc_con = NULL,
@@ -434,7 +434,7 @@ redcap_server <- function(id, subject_id) {
         rc_configured_message = NULL
         )
       
-      ## REDCap Export Values ----
+      ## Return Values ----
       redcap_export <- reactiveValues(
         ### Module Info
         moduleName = 'REDCap',
@@ -625,7 +625,7 @@ redcap_server <- function(id, subject_id) {
                          select(.data$field_label) %>%
                          deframe(),
                        options = list(create = FALSE,
-                                      placeholder = 'Please add a record identifier question to REDCap Instrument.'
+                                      placeholder = 'Select record identifier, or ensure a record identifier question is present in a REDCap Instrument.'
                                       )
                        )
         })
@@ -644,7 +644,7 @@ redcap_server <- function(id, subject_id) {
                     )
         })
       
-      observeEvent(c(redcap_setup$rc_records, redcap_setup$rc_meta_data, input$rc_identifier_field, input$rc_reviewer_field), {
+      observeEvent(c(redcap_setup$rc_records, redcap_setup$rc_meta_data, input$rc_identifier_field, input$rc_reviewer_field, redcap_export$is_configured), {
         req(redcap_export$is_connected == 'yes', input$rc_reviewer_field)
         redcap_setup$temp_identifier_field <- redcap_setup$rc_meta_data %>% 
           filter(.data$field_label == input$rc_identifier_field) %>% 
@@ -824,7 +824,7 @@ redcap_server <- function(id, subject_id) {
           }
         })
       
-      ## REDCap Instrument Values ----  
+      ## Instrument Values ----  
       redcap_instrument <- reactiveValues(
         selected_instrument_meta = NULL,
         selected_instrument_complete_field = NULL,
@@ -846,7 +846,8 @@ redcap_server <- function(id, subject_id) {
         upload_status = NULL
         )
       
-      ## Select REDCap Instrument ----
+      ## Instrument Preparation ----
+      ### Select REDCap Instrument
       instrument_select <- reactive({
         req(redcap_setup$rc_instruments_list)
         selectizeInput(inputId = ns('rc_instrument_selection'),
@@ -856,7 +857,7 @@ redcap_server <- function(id, subject_id) {
         })
       output$instrument_selection <- renderUI({ instrument_select() })
       
-      ## Extract and Prep REDCap Instrument ----
+      ## Extract and Prep REDCap Instrument
       observeEvent(input$rc_instrument_selection, {
         req(input$rc_instrument_selection)
         redcap_instrument$selected_instrument_meta <- redcap_setup$rc_meta_data %>%
@@ -953,7 +954,7 @@ redcap_server <- function(id, subject_id) {
         message('REDCap Refresh Complete')
         })
       
-      ## Process Previous Data ----
+      ## Process Previous data ----
       ### Filter down existing REDCap data to the subject in context. If no data exists, create empty data structure
       observeEvent(c(subject_id(), redcap_instrument$previous_data), {
         req(redcap_export$is_connected == 'yes', redcap_export$is_configured == 'yes', subject_id())
@@ -1092,7 +1093,7 @@ redcap_server <- function(id, subject_id) {
           add_row(redcap_instrument$current_record_id) ### Add REDCap Record id
         })
       
-      ## Process Instrument Data ----
+      ## Process Instrument data ----
       ## Process User Entered Data for REDCap Upload
       observeEvent(c(redcap_instrument$data, input$survey_complete), {
         req(redcap_instrument$selected_instrument_complete_field)
@@ -1217,8 +1218,8 @@ redcap_server <- function(id, subject_id) {
           )
       })
       
-      ## REDCap Upload Button ----
-      ### Display the REDCap Upload button if user has changed values
+      ## Upload Button ----
+      ### Show/Hide the REDCap Upload button based on whether new data has been entered
       observeEvent(redcap_instrument$data_is_different, {
         if(redcap_instrument$data_is_different == TRUE) {
           shinyjs::show('redcap_upload_btn_div')
@@ -1238,14 +1239,14 @@ redcap_server <- function(id, subject_id) {
                                                                       unnest(.data$current_value) %>% 
                                                                       mutate(answered = case_when(.data$current_value != '' ~ 1,
                                                                                                   TRUE ~ 0)
-                                                                      ) %>% 
+                                                                             ) %>% 
                                                                       group_by(.data$field_name) %>% 
                                                                       summarise(answered = max(.data$answered,na.rm = T),.groups = 'drop') %>% 
                                                                       filter(.data$answered > 0 ) %>% 
                                                                       nrow()
-        )
+                                                                    )
         redcap_instrument$required_answered <- redcap_instrument$qty_required == redcap_instrument$qty_required_answered
-      })
+        })
       
       ## REDCap Survey Complete ----
       observeEvent(c(input$rc_instrument_selection, redcap_instrument$previous_subject_data, redcap_instrument$required_answered), {
@@ -1504,7 +1505,7 @@ redcap_server <- function(id, subject_id) {
             }
         })
       
-      ## REDCap Instrument UI Outputs ----
+      ## Instrument UI Outputs ----
       output$instrument_ui <- renderUI({ 
         req(redcap_instrument$rc_instrument_ui$shiny_taglist)
         redcap_instrument$rc_instrument_ui$shiny_taglist 
