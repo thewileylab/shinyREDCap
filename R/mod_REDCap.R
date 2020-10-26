@@ -346,6 +346,7 @@ redcap_setup_ui <- function(id) {
 #'
 redcap_instrument_ui <- function(id) {
   ns <- NS(id)
+  ## Bind keyboard to input
   save <- paste0(
     "$(document).on('keydown', function(event){",
     "  var key = event.which;",
@@ -357,7 +358,6 @@ redcap_instrument_ui <- function(id) {
   
   tagList(
     golem_add_external_resources(),
-    ## Bind keyboard to input
     tags$head(tags$script(HTML(save))),
     shinydashboard::box(title = "REDCap Instrument",
                         width = '100%',
