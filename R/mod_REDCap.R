@@ -350,7 +350,7 @@ redcap_instrument_ui <- function(id) {
     "$(document).on('keydown', function(event){",
     "  var key = event.which;",
     "  if(event.metaKey && event.altKey && key === 83){",
-    "    Shiny.setInputValue('",id,"-keyboardSave', true, {priority: 'event'});",
+    "    Shiny.setInputValue('",id,"-upload', true, {priority: 'event'});",
     "  } ",
     "});"
     )
@@ -364,7 +364,7 @@ redcap_instrument_ui <- function(id) {
                         status = 'danger',
                         solidHeader = F,
                         uiOutput(ns('instrument_selection')),
-                        div(style='max-height:600px; overflow-y:scroll',
+                        div(style='max-height:550px; overflow-y:scroll',
                             uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f') 
                             )
                         ),
@@ -1339,7 +1339,7 @@ redcap_server <- function(id, subject_id) {
       
       ## Upload Data to REDCap ----
       ### Here, we decide what to do. 
-      observeEvent(c(input$upload, input$keyboardSave), ignoreInit = T, {
+      observeEvent(input$upload, ignoreInit = T, {
         ### Pause before upload. Evaluate your life choices up until this point.
         message('Determining overwrite status...')
         upload_checkData <- if(redcap_setup$requires_reviewer == 'yes') {
