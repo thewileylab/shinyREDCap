@@ -346,8 +346,19 @@ redcap_setup_ui <- function(id) {
 #'
 redcap_instrument_ui <- function(id) {
   ns <- NS(id)
+  save <- paste0(
+    "$(document).on('keydown', function(event){",
+    "  var key = event.which;",
+    "  if(event.metaKey && event.altKey && key === 83){",
+    "    Shiny.setInputValue('",id,"-keyboardSave', true, {priority: 'event'});",
+    "  } ",
+    "});"
+    )
+  
   tagList(
     golem_add_external_resources(),
+    ## Bind keyboard to input
+    tags$head(tags$script(HTML(save))),
     shinydashboard::box(title = "REDCap Instrument",
                         width = '100%',
                         status = 'danger',
@@ -370,7 +381,7 @@ redcap_instrument_ui <- function(id) {
                         uiOutput(ns('redcap_instrument_complete_warn')),
                         shinyjs::hidden(
                           div(id = ns('redcap_upload_btn_div'),
-                              actionButton(inputId = ns('upload'), label = 'Upload to REDCap')
+                              actionButton(inputId = ns('upload'), label = 'Save to REDCap')
                           )
                         )
     )
@@ -1328,7 +1339,7 @@ redcap_server <- function(id, subject_id) {
       
       ## Upload Data to REDCap ----
       ### Here, we decide what to do. 
-      observeEvent(input$upload, {
+      observeEvent(c(input$upload, input$keyboardSave), ignoreInit = T, {
         ### Pause before upload. Evaluate your life choices up until this point.
         message('Determining overwrite status...')
         upload_checkData <- if(redcap_setup$requires_reviewer == 'yes') {
