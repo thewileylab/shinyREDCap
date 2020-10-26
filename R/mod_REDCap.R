@@ -431,7 +431,8 @@ redcap_server <- function(id, subject_id) {
         reviewer_label = NULL,
         reviewer_field = NULL,
         reviewer = NULL,
-        rc_configured_message = NULL
+        rc_configured_message = NULL,
+        rc_instruments_list = ''
         )
       
       ## Return Values ----
@@ -849,7 +850,6 @@ redcap_server <- function(id, subject_id) {
       ## Instrument Preparation ----
       ### Select REDCap Instrument
       instrument_select <- reactive({
-        req(redcap_setup$rc_instruments_list)
         selectizeInput(inputId = ns('rc_instrument_selection'),
                        label = 'Select REDCap Instrument',
                        choices = redcap_setup$rc_instruments_list
@@ -1540,6 +1540,7 @@ redcap_server <- function(id, subject_id) {
           redcap_setup$reviewer_field <- NULL
           redcap_setup$reviewer <- NULL
           redcap_setup$rc_configured_message <- NULL
+          redcap_setup$rc_instruments_list <- ''
           ### Reset UI
           shinyjs::hide('redcap_configured_success_div')
           shinyjs::show('redcap_connect_div') ### Show REDCap connection GUI
