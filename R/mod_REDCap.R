@@ -1340,6 +1340,7 @@ redcap_server <- function(id, subject_id) {
       ## Upload Data to REDCap ----
       ### Here, we decide what to do. 
       observeEvent(input$upload, ignoreInit = T, {
+        req(redcap_instrument$data_is_different == TRUE)
         ### Pause before upload. Evaluate your life choices up until this point.
         message('Determining overwrite status...')
         upload_checkData <- if(redcap_setup$requires_reviewer == 'yes') {
