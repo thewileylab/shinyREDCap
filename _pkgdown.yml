@@ -1,5 +1,19 @@
 url: shinyredcap.thewileylab.org
-destination: docs
+template:
+  params:
+    bootswatch: flatly
+home:
+  strip_header: true
+  links:
+  - text: Additional WileyLab tools
+    href: https://www.thewileylab.org/software
+authors:
+  The Wiley Lab:
+    href: https://www.thewileylab.org/
+    html: <img src="https://raw.githubusercontent.com/thewileylab/shinyREDCap/master/man/figures/WileyLab.svg" height="24" />
+navbar:
+  structure:
+    right: [reference, github]    
 reference:
   - title: "Package Information"
     contents:

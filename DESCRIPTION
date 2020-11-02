@@ -1,7 +1,10 @@
 Package: shinyREDCap
 Title: shinyREDCap: Access REDCap Instruments through R Shiny
-Version: 0.0.2.9001
-Authors@R: person('David', 'Mayer', email = 'david.mayer@cuanschutz.edu', role = c('cre', 'aut'))
+Version: 0.0.2.9002
+Authors@R: c(
+            person('David', 'Mayer', email = 'david.mayer@cuanschutz.edu', role = c('cre', 'aut')),
+            person(given = "The Wiley Lab", role = c("cph", "fnd"))
+            )
 Description: A shiny module to connect you to a REDCap project and perform a chart review from within an R Shiny Application.
 License: MIT + file LICENSE
 Imports: 

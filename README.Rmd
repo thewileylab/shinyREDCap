@@ -18,6 +18,8 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
+## Overview
+
 The goal of shinyREDCap is to allow you to interact with your REDCap Projects from within a Shiny application. REDCap instruments are translated into native Shiny controls/widgets and allow for the capture of abstracted information from within the R Shiny environment. Additionally, error prone fields such as MRN and reviewer information are populated automatically, based on user configured information, thus reducing the potential for error in abstracted information. 
  
 

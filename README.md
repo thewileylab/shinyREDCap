@@ -7,6 +7,8 @@
 
 <!-- badges: end -->
 
+## Overview
+
 The goal of shinyREDCap is to allow you to interact with your REDCap
 Projects from within a Shiny application. REDCap instruments are
 translated into native Shiny controls/widgets and allow for the capture
