@@ -368,7 +368,7 @@ redcap_instrument_ui <- function(id) {
                             uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f') 
                             )
                         ),
-    shinydashboard::box(title = 'Upload to REDCap',
+    shinydashboard::box(title = 'Save to REDCap',
                         width = '100%',
                         status = 'danger',
                         solidHeader = F,
@@ -1383,7 +1383,7 @@ redcap_server <- function(id, subject_id) {
                              DT::dataTableOutput(ns('redcap_overwrite'))
                              ),
               type = "warning",
-              btn_labels = c("Cancel", "Upload to REDCap"),
+              btn_labels = c("Cancel", "Save to REDCap"),
               btn_colors = NULL,
               closeOnClickOutside = FALSE,
               showCloseButton = FALSE,
