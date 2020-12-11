@@ -276,7 +276,7 @@ render_redcap_instrument <- function(shinyREDCap_type, field_name, field_label, 
 #' @format A data frame with 9 rows and 3 variables:
 #' \describe{
 #'   \item{redcap_field_type}{A REDCap Question Type}
-#'   \item{redcap_field_val}{Custom REDCap Question Type Validation}
+#'   \item{redcap_field_validation}{Custom REDCap Question Type Validation}
 #'   \item{shinyREDCap_widget_function}{shinyREDCap function to use when mapping to native Shiny widget}
 #'   ...
 #' }
@@ -563,7 +563,7 @@ redcap_server <- function(id, subject_id) {
           redcap_setup$rc_records <- safe_exportRecords(redcap_setup$rc_con, redcap_setup$rc_field_names)
           redcap_setup$unsupported_fields <- redcap_setup$rc_meta_data %>%
             left_join(shinyREDCap::redcap_widget_map, 
-                      by = c('field_type' = 'redcap_field_type', 'text_validation_type_or_show_slider_number' = 'redcap_field_val')
+                      by = c('field_type' = 'redcap_field_type', 'text_validation_type_or_show_slider_number' = 'redcap_field_validation')
                       ) %>% 
               select('Instrument' = .data$form_name, 'Field Type' = .data$field_type, 'Field Label' = .data$field_label, 'Field Name' = .data$field_name, 'Validation' = .data$text_validation_type_or_show_slider_number, .data$shinyREDCap_widget_function) %>% 
               filter(is.na(.data$shinyREDCap_widget_function))
@@ -881,7 +881,7 @@ redcap_server <- function(id, subject_id) {
           ### assumption.
           mutate_if(is.logical, as.character) %>%
           left_join(shinyREDCap::redcap_widget_map,
-                    by = c('field_type' = 'redcap_field_type', 'text_validation_type_or_show_slider_number' = 'redcap_field_val')
+                    by = c('field_type' = 'redcap_field_type', 'text_validation_type_or_show_slider_number' = 'redcap_field_validation')
                     ) %>%
           mutate(section_header = coalesce(.data$section_header, ''),
                  field_note = coalesce(.data$field_note, '')

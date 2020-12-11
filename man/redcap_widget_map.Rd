@@ -8,7 +8,7 @@
 A data frame with 9 rows and 3 variables:
 \describe{
   \item{redcap_field_type}{A REDCap Question Type}
-  \item{redcap_field_val}{Custom REDCap Question Type Validation}
+  \item{redcap_field_validation}{Custom REDCap Question Type Validation}
   \item{shinyREDCap_widget_function}{shinyREDCap function to use when mapping to native Shiny widget}
   ...
 }
