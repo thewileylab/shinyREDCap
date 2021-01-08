@@ -1,4 +1,30 @@
+# shinyREDCap: https://github.com/thewileylab/shinyREDCap/
 # Helper Functions ----
+
+#' Add external Resources to the Application
+#' 
+#' This function is internally used to add external 
+#' resources inside the Shiny application. 
+#' 
+#' @import shiny
+#' @importFrom golem add_resource_path activate_js favicon bundle_resources
+#' @importFrom shinyWidgets useShinydashboard useSweetAlert
+#' @importFrom shinyjs useShinyjs
+#' @noRd
+src_add_external_resources <- function(){
+  
+  add_resource_path(
+    'www', app_sys('app/www')
+  )
+  
+  tags$head(
+    # Add here other external resources
+    # for example, you can add shinyalert::useShinyalert()
+    shinyWidgets::useShinydashboard(),
+    shinyWidgets::useSweetAlert(),
+    shinyjs::useShinyjs()
+  )
+}
 
 #' REDCap Connection
 #' 
@@ -297,7 +323,7 @@ render_redcap_instrument <- function(shinyREDCap_type, field_name, field_label, 
 redcap_setup_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    golem_add_external_resources(),
+    src_add_external_resources(),
     shinydashboard::box(title = 'Connect to REDCap',
                         width = '100%',
                         status = 'danger',
@@ -357,7 +383,7 @@ redcap_instrument_ui <- function(id) {
     )
   
   tagList(
-    golem_add_external_resources(),
+    src_add_external_resources(),
     tags$head(tags$script(HTML(save))),
     shinydashboard::box(title = "REDCap Instrument",
                         width = '100%',
