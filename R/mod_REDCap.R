@@ -364,6 +364,7 @@ redcap_instrument_ui <- function(id) {
                         status = 'danger',
                         solidHeader = F,
                         uiOutput(ns('instrument_selection')),
+                        uiOutput(ns('instrument_select_warning')),
                         div(style='max-height:550px; overflow-y:scroll',
                             uiOutput(ns('instrument_ui')) %>% withSpinner(type = 5, color = '#e83a2f') 
                             )
@@ -866,7 +867,12 @@ redcap_server <- function(id, subject_id) {
                        choices = redcap_setup$rc_instruments_list
                        )
         })
+      instrument_select_warning <- reactive({
+        req(redcap_instrument$data_is_different == TRUE)
+        HTML("<font color='#e83a2f'>Warning: Please 'Save to REDCap' before changing instruments to prevent data loss.</font>")
+        })
       output$instrument_selection <- renderUI({ instrument_select() })
+      output$instrument_select_warning <- renderUI({ instrument_select_warning() })
       
       ## Extract and Prep REDCap Instrument
       observeEvent(input$rc_instrument_selection, {
@@ -1234,8 +1240,10 @@ redcap_server <- function(id, subject_id) {
       observeEvent(redcap_instrument$data_is_different, {
         if(redcap_instrument$data_is_different == TRUE) {
           shinyjs::show('redcap_upload_btn_div')
+          shinyjs::disable('rc_instrument_selection')
           } else {
             shinyjs::hide('redcap_upload_btn_div')
+            shinyjs::enable('rc_instrument_selection')
             }
         })
       
