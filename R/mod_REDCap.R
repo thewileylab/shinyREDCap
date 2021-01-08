@@ -478,8 +478,8 @@ redcap_server <- function(id, subject_id) {
         ### Module Info
         moduleName = 'REDCap',
         moduleType = 'abstraction',
-        setup_ui = shinyREDCap::redcap_setup_ui,
-        instrument_ui = shinyREDCap::redcap_instrument_ui,
+        setup_ui = redcap_setup_ui,
+        instrument_ui = redcap_instrument_ui,
         ### Connection Variables
         is_connected = 'no',
         ### Configuration Variables
