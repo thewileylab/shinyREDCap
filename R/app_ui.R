@@ -16,7 +16,7 @@ app_ui <- function(request) {
            tags$h2("Interact with REDCap Instruments"),
            tags$h3("Select a patient from the list"),
            # Create a subject ID selector. This can come from anywhere, 
-           selectInput(inputId = 'subject_id',label = 'Subject ID',choices = c('922873','922874', '922875','922876','922877','922878')),
+           selectInput(inputId = 'subject_id',label = 'Subject ID',choices = c('922873','922874', '922875','922876','922877','922878','1000')),
            # Call the redcap instrument UI function
            redcap_instrument_ui(id = 'setup_namespace')
            )
