@@ -79,7 +79,7 @@ redcap_connection <- function(url, token) {
 
 #' Safe Export Records
 #'
-#' ### Export REDCap Records in a REDCap Project. Sometimes, records don't exist (empty instrument). Use field names to create empty data structure.
+#' Export REDCap Records in a REDCap Project. Sometimes, records don't exist (empty instrument). Use field names to create empty data structure.
 #'
 #' @param rc_con A REDCap API Connection Object
 #' @param rc_field_names The field names for a REDCap instrument
