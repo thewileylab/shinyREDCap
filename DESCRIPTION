@@ -1,6 +1,6 @@
 Package: shinyREDCap
 Title: shinyREDCap: Access REDCap Instruments through R Shiny
-Version: 0.0.3.0000
+Version: 0.0.4.0000
 Authors@R: c(
             person('David', 'Mayer', email = 'david.mayer@cuanschutz.edu', role = c('cre', 'aut')),
             person(given = "The Wiley Lab", role = c("cph", "fnd"))
