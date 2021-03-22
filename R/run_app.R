@@ -1,10 +1,16 @@
-#' Run the Shiny Application
+#' Run Application
 #'
+#' @description 
+#' Start the shinyREDCap Application. 
+#' 
 #' @param ... A series of options to be used inside the app.
 #'
 #' @export
 #' @importFrom shiny shinyApp
 #' @importFrom golem with_golem_options
+#' 
+#' @return No return value, called to start the shinyREDCap Application!
+#' 
 run_app <- function(
   ...
 ) {
