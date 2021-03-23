@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Safe Export Records — safe_exportRecords • shinyREDCap</title>
+<title>REDCap Safe Export Records — safe_exportRecords • shinyREDCap</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,10 @@
 
 
 
-<meta property="og:title" content="Safe Export Records — safe_exportRecords" />
-<meta property="og:description" content="### Export REDCap Records in a REDCap Project. Sometimes, records don't exist (empty instrument). Use field names to create empty data structure." />
+<meta property="og:title" content="REDCap Safe Export Records — safe_exportRecords" />
+<meta property="og:description" content="A safe wrapper around redcapAPI::exportRecords that does not fail when records
+are requested from an empty REDCap project. In the event of an empty project,
+field names are used to create an empty data structure." />
 
 
 
@@ -72,7 +74,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">shinyREDCap</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.2.9002</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.4.0000</span>
       </span>
     </div>
 
@@ -80,7 +82,7 @@
       <ul class="nav navbar-nav">
         <li>
   <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -91,7 +93,7 @@
 </li>
 <li>
   <a href="https://github.com/thewileylab/shinyREDCap/">
-    <span class="fab fa fab fa-github fa-lg"></span>
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -108,13 +110,15 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Safe Export Records</h1>
+    <h1>REDCap Safe Export Records</h1>
     <small class="dont-index">Source: <a href='https://github.com/thewileylab/shinyREDCap/blob/master/R/mod_REDCap.R'><code>R/mod_REDCap.R</code></a></small>
     <div class="hidden name"><code>safe_exportRecords.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>### Export REDCap Records in a REDCap Project. Sometimes, records don't exist (empty instrument). Use field names to create empty data structure.</p>
+    <p>A safe wrapper around <a href='https://rdrr.io/pkg/redcapAPI/man/exportRecords.html'>redcapAPI::exportRecords</a> that does not fail when records
+are requested from an empty REDCap project. In the event of an empty project,
+field names are used to create an empty data structure.</p>
     </div>
 
     <pre class="usage"><span class='fu'>safe_exportRecords</span><span class='op'>(</span><span class='va'>rc_con</span>, <span class='va'>rc_field_names</span><span class='op'>)</span></pre>
@@ -134,7 +138,8 @@
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A data frame containing existing REDCap records, or an empty data frame with the structure of what the records would look like</p>
+    <p>A data frame containing existing REDCap records, or an empty data
+frame with the structure of what the records would look like.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

@@ -1,6 +1,6 @@
 Package: shinyREDCap
 Title: shinyREDCap: Access REDCap Instruments through R Shiny
-Version: 0.0.3.0000
+Version: 0.0.4.0000
 Authors@R: c(
             person('David', 'Mayer', email = 'david.mayer@cuanschutz.edu', role = c('cre', 'aut')),
             person(given = "The Wiley Lab", role = c("cph", "fnd"))
@@ -12,7 +12,7 @@ Imports:
     dplyr (>= 1.0.0),
     DT,
     glue,
-    golem (>= 0.2.1.90),
+    golem,
     httr,
     magrittr,
     purrr,
@@ -28,9 +28,9 @@ Imports:
     stringr,
     tibble,
     tidyr (>= 1.1.0)
-Remotes: Thinkr-open/golem
 Encoding: UTF-8
 LazyData: true
+Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 URL: https://shinyredcap.thewileylab.org/, https://github.com/thewileylab/shinyREDCap
 BugReports: https://github.com/thewileylab/shinyREDCap/issues

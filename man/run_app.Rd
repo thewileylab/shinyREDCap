@@ -2,13 +2,16 @@
 % Please edit documentation in R/run_app.R
 \name{run_app}
 \alias{run_app}
-\title{Run the Shiny Application}
+\title{Run Application}
 \usage{
 run_app(...)
 }
 \arguments{
 \item{...}{A series of options to be used inside the app.}
 }
+\value{
+No return value, called to start the shinyREDCap Application!
+}
 \description{
-Run the Shiny Application
+Start the shinyREDCap Application.
 }
