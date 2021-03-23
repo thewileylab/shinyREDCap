@@ -28,28 +28,36 @@ src_add_external_resources <- function(){
 
 #' REDCap Connection
 #' 
-#' A 'safe' wrapper for redcapAPI::redcapConnection(). Will return diagnostic error codes in case incorrect URL or token are provided.
+#' @description 
+#' 
+#' ## Overview
+#' A 'safe' wrapper for [redcapAPI::redcapConnection()]. Will return diagnostic 
+#' error codes in case incorrect URL or token are provided instead of failing
+#' outright.
+#' 
+#' ## REDCap API Security
+#' It is good practice to ensure that SSL certs are validated when utilizing the REDCap API. 
+#' To ensure this happens, set the CURLOPT_SSL_VERIFYPEER' option to TRUE to avoid potential 
+#' man in the middle attacks.
+#' 
+#' The redcapAPI package utilizes the httr package to perform operations using the REDCap API. 
+#' Configuration options can be passed directly to httr via the config option in the 
+#' [redcapAPI::redcapConnection] function. Here, we set 'ssl_verifypeer = 1L' to ensure
+#' cert checking is enabled.
+#' * \url{https://www.rdocumentation.org/packages/redcapAPI/versions/2.3/topics/redcapConnection}
+#' * \url{https://httr.r-lib.org/reference/httr_options.html}
 #'
-#' @param url The API URL for your institution's REDCap instance
-#' @param token The API token for your REDCap project
+#' @param url A string containing the https URL for your institution's REDCap API.
+#' @param token A string containing the API token for your REDCap project.
 #' @keywords internal
-#' @return If the URL and token are correct, return a redcapAPI connection object. Else, return diagnostic error. 
-#' @export
+#' 
 #' @importFrom redcapAPI exportProjectInformation redcapConnection
 #' @importFrom stringr str_detect regex
 #' @importFrom httr config
 #'
-
-### REDCap API Security
-### It is good practice to ensure that SSL certs are verified when utilizing the REDCap API. REDCap recommends setting the 
-### 'CURLOPT_SSL_VERIFYPEER' option to TRUE to avoid potential man in the middle attacks.
-###  - https://redcap.ucdenver.edu/api/help/?content=security
-### 
-### The redcapAPI package utilizes the httr package to perform operations using the REDCap API. Configuration options can be 
-### passed directly to httr via the config option in the redcapConnection function. Here, we set 'ssl_verifypeer = 1L' to ensure
-### cert checking is enabled.
-### - https://www.rdocumentation.org/packages/redcapAPI/versions/2.3/topics/redcapConnection
-### - https://httr.r-lib.org/reference/httr_options.html
+#' @return A redcapAPI connection object if the URL and API token are correct 
+#' ( See: [redcapAPI::redcapConnection] ). Else, return diagnostic error. 
+#' 
 
 redcap_connection <- function(url, token) { 
   connection_status <- tryCatch({
@@ -77,21 +85,26 @@ redcap_connection <- function(url, token) {
 
 ## REDCap Safe Export
 
-#' Safe Export Records
+#' REDCap Safe Export Records
+#' 
+#' @description 
+#' A safe wrapper around [redcapAPI::exportRecords] that does not fail when records
+#' are requested from an empty REDCap project. In the event of an empty project, 
+#' Field names are used to create an empty data structure.
 #'
-#' Export REDCap Records in a REDCap Project. Sometimes, records don't exist (empty instrument). Use field names to create empty data structure.
-#'
+#' @keywords internal
 #' @param rc_con A REDCap API Connection Object
 #' @param rc_field_names The field names for a REDCap instrument
-#' @keywords internal
-#' @return A data frame containing existing REDCap records, or an empty data frame with the structure of what the records would look like
-#' @export
+#' 
 #' @importFrom redcapAPI exportRecords
 #' @importFrom dplyr as_tibble select mutate mutate_all
 #' @importFrom magrittr %>% 
 #' @importFrom purrr flatten_dfr
 #' @importFrom rlang .data
 #' @importFrom tidyr drop_na pivot_wider
+#' 
+#' @return A data frame containing existing REDCap records, or an empty data 
+#' frame with the structure of what the records would look like.
 #' 
 safe_exportRecords <- function(rc_con, rc_field_names) {
   tryCatch({
@@ -123,8 +136,9 @@ safe_exportRecords <- function(rc_con, rc_field_names) {
 #' @param ... Any additional parameters
 #'
 #' @rdname render_redcap_instrument
+#' 
 #' @keywords internal
-#' @export
+#' 
 #' @import shiny
 #' @importFrom dplyr mutate_all select if_else
 #' @importFrom glue glue
