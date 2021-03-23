@@ -397,7 +397,7 @@ shinyREDCap_integer <- function(id, field_label, value = NULL, ...) {
 #' 'yes' or 'no'.
 #' \item{moduleName}: A string, containing the module moniker.
 #' \item{moduleType}: A string, with the module type (what does it do?)
-#' \item{previous_selected_instrument_complete_val}: A character ("0","1","2", NA_character)
+#' \item{previous_selected_instrument_complete_val}: A character ("1","2","3", NA_character)
 #' representing a REDCap review status. 
 #' \item{setup_ui}: The module setup ui function
 #' }}
