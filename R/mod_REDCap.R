@@ -1,4 +1,4 @@
-# shinyREDCap: https://github.com/thewileylab/shinyREDCap/
+# Adapted from: shinyREDCap: https://github.com/thewileylab/shinyREDCap/
 # Helper Functions ----
 
 #' Add external Resources to the Application
@@ -176,7 +176,7 @@ render_redcap_instrument <- function(shinyREDCap_type, id, field_label, required
   }
 }
 
-## Translation Functions ----
+## Widget Translation Functions ----
 #' Shiny Widget Translation
 #' 
 #' @description 
@@ -345,14 +345,71 @@ shinyREDCap_integer <- function(id, field_label, value = NULL, ...) {
 #' }
 "redcap_widget_map"
 
-# Setup UI ----
-#' REDCap Setup UI
-#'
+# Module Documentation
+#' REDCap Abstraction Module
+#' 
+#' @description 
+#' This module allows users to interact with REDCap Projects from within a Shiny application. 
+#' REDCap instruments are translated into native Shiny controls/widgets and allow for the 
+#' capture of abstracted information from within the R Shiny environment. Additionally, error 
+#' prone fields such as MRN and reviewer information are populated automatically, based on 
+#' user configured information, thus reducing the potential for error in abstracted 
+#' information.
+#' 
+#' This module consists of the following components:
+#' 
+#' ## Module UI functions
+#' 
+#' \itemize{
+#' \item{`redcap_setup_ui`}: The REDCap setup/configuration UI
+#' \item{`redcap_instrument_ui`}: A shiny representation of a REDCap 
+#' Instrument
+#' }
+#' ## Module Server function
+#' \itemize{
+#' \item{`redcap_server`}: The logic 
+#' }
+#' 
+#' ## Keyboard Shortcuts
+#' 
+#' This module also provides a keyboard shortcut to assist with saving
+#' abstracted patient data. The "meta" key refers to "ctrl" on Windows 
+#' and "Cmd" on Mac.
+#' * Save current instrument data: “alt + meta + s”
+#' 
 #' @param id The module namespace
-#'
-#' @return The REDCap Setup UI
+#' @name mod_redcap
+#' 
+#' @return 
+#' *redcap_setup_ui*:
+#' \item{tagList}{The REDCap setup/configuration UI}
+#' *redcap_instrument_ui*:
+#' \item{tagList}{A shiny representation of a REDCap Instrument}
+#' *redcap_server*: 
+#' \item{reactiveValues}{
+#' \itemize{
+#' \item{all_review_status}: A [dplyr::tibble] containing the review status of
+#' all previously reviewed individuals.
+#' \item{instrument_ui}: The module instrument ui function
+#' \item{is_configured}: A string, with module configuration status. Valid statuses 
+#' are yes' or 'no'.
+#' \item{is_connected}: A string, with module connection status. Valid statuses are
+#' 'yes' or 'no'.
+#' \item{moduleName}: A string, containing the module moniker.
+#' \item{moduleType}: A string, with the module type (what does it do?)
+#' \item{previous_selected_instrument_complete_val}: A character ("0","1","2", NA_character)
+#' representing a REDCap review status. 
+#' \item{setup_ui}: The module setup ui function
+#' }}
+#' 
+NULL
+#> NULL
+
+# UI ----
+## Setup ----
+#' @rdname mod_redcap
+#' 
 #' @keywords internal
-#' @export
 #' 
 #' @importFrom shinydashboard box
 #' @importFrom shinyjs hidden
@@ -396,14 +453,10 @@ redcap_setup_ui <- function(id) {
   )
 }
 
-# Instrument UI ----
-#' REDCap Instrument UI
-#'
-#' @param id The module namespace
-#'
-#' @return A Shiny Representation of REDCap Instrument
+## Instrument ----
+#' @rdname mod_redcap
+#' 
 #' @keywords internal
-#' @export
 #' 
 #' @importFrom shinyjs hidden
 #' @importFrom shinydashboard box
@@ -459,14 +512,11 @@ redcap_instrument_ui <- function(id) {
 }
 
 # Server ----
-#' REDCap Server
-#'
-#' @param id The module namespace
-#' @param subject_id A reactive expression containing a subject identifier
-#'
-#' @return REDCap connection variables and project information
+#' @rdname mod_redcap
+#' 
 #' @keywords internal
-#' @export
+#' 
+#' @param subject_id A [shiny::reactive] expression containing a subject identifier.
 #' 
 #' @importFrom dplyr arrange as_tibble case_when coalesce contains count desc distinct everything filter full_join group_by inner_join left_join mutate mutate_all mutate_at mutate_if pull rename relocate select slice summarise ungroup vars
 #' @importFrom DT datatable  
