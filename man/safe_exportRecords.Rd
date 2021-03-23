@@ -18,6 +18,6 @@ frame with the structure of what the records would look like.
 \description{
 A safe wrapper around \link[redcapAPI:exportRecords]{redcapAPI::exportRecords} that does not fail when records
 are requested from an empty REDCap project. In the event of an empty project,
-Field names are used to create an empty data structure.
+field names are used to create an empty data structure.
 }
 \keyword{internal}
