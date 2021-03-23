@@ -4,16 +4,10 @@
     <loc>shinyredcap.thewileylab.org/index.html</loc>
   </url>
   <url>
+    <loc>shinyredcap.thewileylab.org/reference/mod_redcap.html</loc>
+  </url>
+  <url>
     <loc>shinyredcap.thewileylab.org/reference/redcap_connection.html</loc>
-  </url>
-  <url>
-    <loc>shinyredcap.thewileylab.org/reference/redcap_instrument_ui.html</loc>
-  </url>
-  <url>
-    <loc>shinyredcap.thewileylab.org/reference/redcap_server.html</loc>
-  </url>
-  <url>
-    <loc>shinyredcap.thewileylab.org/reference/redcap_setup_ui.html</loc>
   </url>
   <url>
     <loc>shinyredcap.thewileylab.org/reference/redcap_survey_complete.html</loc>
@@ -32,5 +26,8 @@
   </url>
   <url>
     <loc>shinyredcap.thewileylab.org/reference/shinyREDCap.html</loc>
+  </url>
+  <url>
+    <loc>shinyredcap.thewileylab.org/reference/shiny_widget_translation.html</loc>
   </url>
 </urlset>

@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">shinyREDCap</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.2.9002</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.4.0000</span>
       </span>
     </div>
 
@@ -39,7 +39,7 @@
       <ul class="nav navbar-nav">
 <li>
   <a href="index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -50,7 +50,7 @@
 </li>
 <li>
   <a href="https://github.com/thewileylab/shinyREDCap/">
-    <span class="fab fa fab fa-github fa-lg"></span>
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -79,46 +79,46 @@
 <h2 class="hasAnchor">
 <a href="#installation" class="anchor"></a>Installation</h2>
 <p>You can install the released version of shinyREDCap from <a href="https://github.com/thewileylab/shinyREDCap">GitHub</a> with:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit">
-<span class="co"># install.packages("devtools")</span>
-<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org//reference/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"thewileylab/shinyREDCap"</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># install.packages("devtools")</span>
+<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org//reference/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"thewileylab/shinyREDCap"</span><span class="op">)</span></code></pre></div>
 </div>
 <div id="usage" class="section level2">
 <h2 class="hasAnchor">
 <a href="#usage" class="anchor"></a>Usage</h2>
 <p>To connect shinyREDCap to your REDCap Instruments, users must have read and write access to a previously created REDCap project. Additionally, users must request an API key.</p>
 <p>To get a feel for the module, you may run the demo application:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit">
-<span class="fu">shinyREDCap</span><span class="fu">::</span><span class="fu"><a href="reference/run_app.html">run_app</a></span><span class="op">(</span><span class="op">)</span></pre></div>
-<p>To integrate shinyREDCap into your own Shiny application place <code><a href="reference/redcap_setup_ui.html">redcap_setup_ui()</a></code>, <code><a href="reference/redcap_instrument_ui.html">redcap_instrument_ui()</a></code> and corresponding server modules into the application’s ui and server functions as in the example below:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit">
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="http://shiny.rstudio.com">shiny</a></span><span class="op">)</span>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu">shinyREDCap</span><span class="fu">::</span><span class="fu"><a href="reference/run_app.html">run_app</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
+<p>To integrate shinyREDCap into your own Shiny application place <code><a href="reference/mod_redcap.html">redcap_setup_ui()</a></code>, <code><a href="reference/mod_redcap.html">redcap_instrument_ui()</a></code> and corresponding server modules into the application’s ui and server functions as in the example below:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.rstudio.com/">shiny</a></span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://shinyredcap.thewileylab.org/">shinyREDCap</a></span><span class="op">)</span>
-<span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://shiny.rstudio.com/reference/shiny/latest/fluidPage.html">fluidPage</a></span><span class="op">(</span>
-    <span class="fu"><a href="https://shiny.rstudio.com/reference/shiny/latest/column.html">column</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">6</span>,
+<span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html">fluidPage</a></span><span class="op">(</span>
+    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/column.html">column</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">6</span>,
            <span class="va">tags</span><span class="op">$</span><span class="fu">h2</span><span class="op">(</span><span class="st">"Setup REDCap Instrument"</span><span class="op">)</span>,
            <span class="co"># Call the setup UI function</span>
-           <span class="fu"><a href="reference/redcap_setup_ui.html">redcap_setup_ui</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">'redcap_namespace'</span><span class="op">)</span>
+           <span class="fu"><a href="reference/mod_redcap.html">redcap_setup_ui</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">'redcap_namespace'</span><span class="op">)</span>
            <span class="op">)</span>,
-    <span class="fu"><a href="https://shiny.rstudio.com/reference/shiny/latest/column.html">column</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">6</span>,
+    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/column.html">column</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">6</span>,
            <span class="va">tags</span><span class="op">$</span><span class="fu">h2</span><span class="op">(</span><span class="st">"Interact with REDCap Project Instruments"</span><span class="op">)</span>,
            <span class="va">tags</span><span class="op">$</span><span class="fu">h3</span><span class="op">(</span><span class="st">"Select a patient from the list"</span><span class="op">)</span>,
            <span class="co"># Create a subject ID selector. This can come from anywhere, </span>
-           <span class="fu"><a href="https://shiny.rstudio.com/reference/shiny/latest/selectInput.html">selectInput</a></span><span class="op">(</span>inputId <span class="op">=</span> <span class="st">'subject_id'</span>,label <span class="op">=</span> <span class="st">'Subject ID'</span>,choices <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'922873'</span>,<span class="st">'922874'</span>, <span class="st">'922875'</span>,<span class="st">'922876'</span>,<span class="st">'922877'</span>,<span class="st">'922878'</span><span class="op">)</span><span class="op">)</span>,
+           <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/selectInput.html">selectInput</a></span><span class="op">(</span>inputId <span class="op">=</span> <span class="st">'subject_id'</span>,label <span class="op">=</span> <span class="st">'Subject ID'</span>,choices <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'922873'</span>,<span class="st">'922874'</span>, <span class="st">'922875'</span>,<span class="st">'922876'</span>,<span class="st">'922877'</span>,<span class="st">'922878'</span><span class="op">)</span><span class="op">)</span>,
            <span class="co"># Call the redcap instrument UI function</span>
-           <span class="fu"><a href="reference/redcap_instrument_ui.html">redcap_instrument_ui</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">'redcap_namespace'</span><span class="op">)</span>
+           <span class="fu"><a href="reference/mod_redcap.html">redcap_instrument_ui</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">'redcap_namespace'</span><span class="op">)</span>
            <span class="op">)</span>
   <span class="op">)</span>
 
 <span class="va">server</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span>
   <span class="co"># Encapsulate the subject ID selector as a reactive</span>
-  <span class="va">subject_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://shiny.rstudio.com/reference/shiny/latest/reactive.html">reactive</a></span><span class="op">(</span><span class="op">{</span> <span class="va">input</span><span class="op">$</span><span class="va">subject_id</span> <span class="op">}</span><span class="op">)</span> <span class="co">## Pass to instrument function</span>
+  <span class="va">subject_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/reactive.html">reactive</a></span><span class="op">(</span><span class="op">{</span> <span class="va">input</span><span class="op">$</span><span class="va">subject_id</span> <span class="op">}</span><span class="op">)</span> <span class="co">## Pass to instrument function</span>
   <span class="co"># Call the REDCap server function</span>
-  <span class="va">instrument_vars</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/redcap_server.html">redcap_server</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">'redcap_namespace'</span>, subject_id <span class="op">=</span> <span class="va">subject_id</span> <span class="op">)</span>
+  <span class="va">instrument_vars</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/mod_redcap.html">redcap_server</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">'redcap_namespace'</span>, subject_id <span class="op">=</span> <span class="va">subject_id</span> <span class="op">)</span>
 <span class="op">}</span>
 
 <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/interactive.html">interactive</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>
-  <span class="fu"><a href="https://shiny.rstudio.com/reference/shiny/latest/shinyApp.html">shinyApp</a></span><span class="op">(</span>ui <span class="op">=</span> <span class="va">ui</span>, server <span class="op">=</span> <span class="va">server</span><span class="op">)</span></pre></div>
+  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html">shinyApp</a></span><span class="op">(</span>ui <span class="op">=</span> <span class="va">ui</span>, server <span class="op">=</span> <span class="va">server</span><span class="op">)</span></code></pre></div>
 </div>
 <div id="disclaimer" class="section level2">
 <h2 class="hasAnchor">
