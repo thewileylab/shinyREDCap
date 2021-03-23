@@ -90,7 +90,7 @@ redcap_connection <- function(url, token) {
 #' @description 
 #' A safe wrapper around [redcapAPI::exportRecords] that does not fail when records
 #' are requested from an empty REDCap project. In the event of an empty project, 
-#' Field names are used to create an empty data structure.
+#' field names are used to create an empty data structure.
 #'
 #' @keywords internal
 #' @param rc_con A REDCap API Connection Object
@@ -123,21 +123,70 @@ safe_exportRecords <- function(rc_con, rc_field_names) {
   })
 }
 
-## Render Functions
+# REDCap Instrument Render Functions ----
 
+## Render REDCap Instrument ----
 #' Render REDCap Instrument
 #'
-#' Collection of functions to map REDCap question types to native Shiny widgets.
+#' @description 
+#' This function will select the appropriate shiny widget translation function
+#' based on the provided parameters. Used to loop over REDCap project information
+#' to create an entire data collection instrument which may consist of multiple
+#' questions/question types.
 #' 
-#' @param id Unique REDCap question identifier
-#' @param field_label Question text, with formatting
-#' @param value Default value or previous data if question has previously been answered 
-#' @param placeholder Placeholder text to help a reviewer decide how to answer the question
-#' @param ... Any additional parameters
-#'
-#' @rdname render_redcap_instrument
+#' @param shinyREDCap_type A string indicating a supported shinyREDCap question type. 
+#' Valid options include: "shinyREDCap_text", "shinyREDCap_date", "shinyREDCap_dropdown",
+#' "shinyREDCap_truefalse", "shinyREDCap_yesno", "shinyREDCap_radio", "shinyREDCap_checkbox",
+#' "shinyREDCap_notes", "shinyREDCap_integer" 
+#' @param id A string, containing a globally unique REDCap question identifier. Used to 
+#' create a valid Shiny inputID.
+#' @param field_label A string containing the question being asked. May contain
+#' html formatting.
+#' @param required A string, "yes" or "no". Is this a required REDCap question type?
+#' @param choices REDCap choices for the question.
+#' @param current_subject_data Previously saved REDCap data on the current subject.
+#' @param ... Any additional parameters to pass to shiny widget inputs.
 #' 
 #' @keywords internal
+#' 
+#' @return A shiny input widget for the UI
+#' 
+
+render_redcap_instrument <- function(shinyREDCap_type, id, field_label, required, choices, current_subject_data = NULL, ... ) {
+  if(shinyREDCap_type == 'shinyREDCap_text') {                    ## Text: textInput 
+    shinyREDCap_textInput(id = id, field_label = field_label, value = current_subject_data, ...)
+  } else if(shinyREDCap_type == 'shinyREDCap_date') {             ## Date: dateInput 
+    shinyREDCap_dateInput(id = id, field_label = field_label, value = current_subject_data, ...)
+  } else if (shinyREDCap_type == 'shinyREDCap_dropdown') {        ## DropDown: selectInput
+    shinyREDCap_dropdown(id = id, field_label = field_label, required, choices = choices, value = current_subject_data, ...)
+  } else if (shinyREDCap_type == 'shinyREDCap_truefalse') {       ## TrueFalse: radioButtoms 
+    shinyREDCap_truefalse(id = id, field_label = field_label, required, value = current_subject_data, ...)
+  } else if (shinyREDCap_type == 'shinyREDCap_yesno') {           ## YesNo: radioButtons 
+    shinyREDCap_yesno(id = id, field_label = field_label, required, value = current_subject_data, ...)
+  } else if (shinyREDCap_type == 'shinyREDCap_radio') {           ## Radio: radioButtons 
+    shinyREDCap_radio(id = id, field_label = field_label, required, choices = choices, value = current_subject_data, ...)
+  } else if (shinyREDCap_type == 'shinyREDCap_checkbox') {        ## Checkbox: checkboxGroupInput 
+    shinyREDCap_checkbox(id = id, field_label = field_label, choices = choices, value = current_subject_data, ...)
+  } else if (shinyREDCap_type == 'shinyREDCap_notes') {           ## Notes: textAreaInput 
+    shinyREDCap_notes(id = id, field_label = field_label, value = current_subject_data, ...)
+  } else if (shinyREDCap_type == 'shinyREDCap_integer') {         ## Integer: numericInput 
+    shinyREDCap_integer(id = id, field_label = field_label, value = current_subject_data, ...)
+  } else {                                                        ## Unsupported input 
+    HTML(glue::glue('<font color="#ababab"><strong>{field_label}</strong><br>This is an unsupported field type.</font>'))
+  }
+}
+
+## Translation Functions ----
+#' Shiny Widget Translation
+#' 
+#' @description 
+#' A collection of functions to map REDCap question types as exported by the REDCap API
+#' to native Shiny widgets. 
+#' 
+#' @inheritParams render_redcap_instrument
+#' @param value Default value or previous data if question has previously been answered 
+#' @param placeholder Placeholder text to help a reviewer decide how to answer the question
+#' @name shiny_widget_translation
 #' 
 #' @import shiny
 #' @importFrom dplyr mutate_all select if_else
@@ -148,24 +197,28 @@ safe_exportRecords <- function(rc_con, rc_field_names) {
 #' @importFrom rlang .data
 #' @importFrom stringr str_trim
 #' 
+#' @return A shiny input widget for the UI
+#' 
+NULL
+#> NULL
 
-## Create Shiny Widget Translation Functions 
+#' @rdname shiny_widget_translation
+#' 
+#' @keywords internal
 shinyREDCap_textInput <- function(id, field_label, value = NULL, placeholder = NULL, ...) {
   textInput(inputId = id ,label = HTML(field_label), value = value , placeholder = placeholder)
 }
 
-#' @rdname render_redcap_instrument
+#' @rdname shiny_widget_translation
+#' 
 #' @keywords internal
-#' @export
 shinyREDCap_dateInput <- function(id, field_label, value = NULL, ...) {
   dateInput(inputId = id, label = HTML(field_label), value = value)
 }
 
-#' @param required Is this a required REDCap question type?
-#' @param choices REDCap choices for the question.
-#' @rdname render_redcap_instrument
+#' @rdname shiny_widget_translation
+#' 
 #' @keywords internal
-#' @export
 shinyREDCap_dropdown <- function(id, field_label, required, choices, value = NULL, ...) {
   ## Create selectable choices
   required_choice <- if_else(is.na(required), '[Leave Blank]', '[Not Yet Answered]')
@@ -181,9 +234,9 @@ shinyREDCap_dropdown <- function(id, field_label, required, choices, value = NUL
   selectInput(inputId = id, label = HTML(field_label), choices = dropdown_choices, selected = value)
 }
 
-#' @rdname render_redcap_instrument
+#' @rdname shiny_widget_translation
+#' 
 #' @keywords internal
-#' @export
 shinyREDCap_truefalse <- function(id, field_label, required, value = NULL, ...) {
   if(is.na(required) ) {
     radio_names <- list('True', 'False', HTML("<font color='grey'>[Leave Blank]</font>"))
@@ -194,9 +247,9 @@ shinyREDCap_truefalse <- function(id, field_label, required, value = NULL, ...) 
   radioButtons(inputId = id, label = HTML(field_label), choiceNames = radio_names, choiceValues = radio_values, selected = value)
 }
 
-#' @rdname render_redcap_instrument
+#' @rdname shiny_widget_translation
+#' 
 #' @keywords internal
-#' @export
 shinyREDCap_yesno <- function(id, field_label, required, value = NULL, ...) {
   if(is.na(required) ) {
     radio_names <- list('Yes', 'No', HTML("<font color='grey'>[Leave Blank]</font>"))
@@ -207,9 +260,9 @@ shinyREDCap_yesno <- function(id, field_label, required, value = NULL, ...) {
   radioButtons(inputId = id, label = HTML(field_label), choiceNames = radio_names, choiceValues = radio_values, selected = value)
 }
 
-#' @rdname render_redcap_instrument
+#' @rdname shiny_widget_translation
+#' 
 #' @keywords internal
-#' @export
 shinyREDCap_radio <- function(id, field_label, required, choices, value = NULL, ...) {
   ## Create selectable choices
   if(is.na(required) ) {
@@ -233,9 +286,9 @@ shinyREDCap_radio <- function(id, field_label, required, choices, value = NULL, 
   radioButtons(inputId = id, label = HTML(field_label), choiceNames = radio_names, choiceValues = radio_values, selected = value)
 }
 
-#' @rdname render_redcap_instrument
+#' @rdname shiny_widget_translation
+#' 
 #' @keywords internal
-#' @export
 shinyREDCap_checkbox <- function(id, field_label, choices, value = NULL, ...) {
   ## Create selectable choices
   temp <- tibble(choices = choices) %>% 
@@ -247,48 +300,18 @@ shinyREDCap_checkbox <- function(id, field_label, choices, value = NULL, ...) {
   checkboxGroupInput(inputId = id, label = HTML(field_label), choices = checkbox_choices, selected = value)
 }
 
-#' @rdname render_redcap_instrument
+#' @rdname shiny_widget_translation
+#' 
 #' @keywords internal
-#' @export
 shinyREDCap_notes <- function(id, field_label, value = NULL, ...) {
   textAreaInput(inputId = id, label = HTML(field_label), value = value)
 }
 
-#' @rdname render_redcap_instrument
+#' @rdname shiny_widget_translation
+#' 
 #' @keywords internal
-#' @export
 shinyREDCap_integer <- function(id, field_label, value = NULL, ...) {
   numericInput(inputId = id, label = HTML(field_label), value = value)
-}
-
-## Render REDCap Instrument shinyInput Tags
-
-#' @param current_subject_data Previous REDCap data on the current subject
-#' @rdname render_redcap_instrument
-#' @keywords internal
-#' @export
-render_redcap_instrument <- function(shinyREDCap_type, field_name, field_label, required, choices, current_subject_data = NULL ) {
-  if(shinyREDCap_type == 'shinyREDCap_text') {                    ## Text: textInput 
-    shinyREDCap_textInput(id = field_name, field_label = field_label, value = current_subject_data)
-  } else if(shinyREDCap_type == 'shinyREDCap_date') {             ## Date: dateInput 
-    shinyREDCap_dateInput(id = field_name, field_label = field_label, value = current_subject_data)
-  } else if (shinyREDCap_type == 'shinyREDCap_dropdown') {        ## DropDown: selectInput
-    shinyREDCap_dropdown(id = field_name, field_label = field_label, required, choices = choices, value = current_subject_data)
-  } else if (shinyREDCap_type == 'shinyREDCap_truefalse') {       ## TrueFalse: radioButtoms 
-    shinyREDCap_truefalse(id = field_name, field_label = field_label, required, value = current_subject_data)
-  } else if (shinyREDCap_type == 'shinyREDCap_yesno') {           ## YesNo: radioButtons 
-    shinyREDCap_yesno(id = field_name, field_label = field_label, required, value = current_subject_data)
-  } else if (shinyREDCap_type == 'shinyREDCap_radio') {           ## Radio: radioButtons 
-    shinyREDCap_radio(id = field_name, field_label = field_label, required, choices = choices, value = current_subject_data)
-  } else if (shinyREDCap_type == 'shinyREDCap_checkbox') {        ## Checkbox: checkboxGroupInput 
-    shinyREDCap_checkbox(id = field_name, field_label = field_label, choices = choices, value = current_subject_data)
-  } else if (shinyREDCap_type == 'shinyREDCap_notes') {           ## Notes: textAreaInput 
-    shinyREDCap_notes(id = field_name, field_label = field_label, value = current_subject_data)
-  } else if (shinyREDCap_type == 'shinyREDCap_integer') {         ## Integer: numericInput 
-    shinyREDCap_integer(id = field_name, field_label = field_label, value = current_subject_data)
-  } else {                                                        ## Unsupported input 
-    HTML(glue::glue('<font color="#ababab"><strong>{field_label}</strong><br>This is an unsupported field type.</font>'))
-  }
 }
 
 # Datasets ----
@@ -1124,7 +1147,7 @@ redcap_server <- function(id, subject_id) {
                                           TRUE ~ paste(.data$field_label,"<br/><font color='#FC0020'>* must provide value</font>")
                                           ),
             shiny_input = pmap(list(shinyREDCap_type = .data$shinyREDCap_widget_function,
-                                    field_name = ns(.data$field_name),
+                                    id = ns(.data$field_name),
                                     field_label = .data$shiny_field_label,
                                     required = .data$required_field,
                                     choices = .data$select_choices_or_calculations,
