@@ -31,7 +31,7 @@ Imports:
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.3.2
 URL: https://shinyredcap.thewileylab.org/, https://github.com/thewileylab/shinyREDCap
 BugReports: https://github.com/thewileylab/shinyREDCap/issues
 Suggests: 

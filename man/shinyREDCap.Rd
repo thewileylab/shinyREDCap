@@ -2,8 +2,27 @@
 % Please edit documentation in R/run_app.R
 \docType{package}
 \name{shinyREDCap}
+\alias{shinyREDCap-package}
 \alias{shinyREDCap}
 \title{shinyREDCap: Access REDCap Instruments through R Shiny}
 \description{
 A shiny module to connect you to a REDCap project and perform a chart review from within an R Shiny Application.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://shinyredcap.thewileylab.org/}
+  \item \url{https://github.com/thewileylab/shinyREDCap}
+  \item Report bugs at \url{https://github.com/thewileylab/shinyREDCap/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: David Mayer \email{david.mayer@cuanschutz.edu}
+
+Other contributors:
+\itemize{
+  \item The Wiley Lab [copyright holder, funder]
+}
+
 }
