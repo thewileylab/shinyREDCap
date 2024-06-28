@@ -16,7 +16,7 @@ A data frame containing existing REDCap records, or an empty data
 frame with the structure of what the records would look like.
 }
 \description{
-A safe wrapper around \link[redcapAPI:exportRecords]{redcapAPI::exportRecords} that does not fail when records
+A safe wrapper around \link[redcapAPI:recordsMethods]{redcapAPI::exportRecords} that does not fail when records
 are requested from an empty REDCap project. In the event of an empty project,
 field names are used to create an empty data structure.
 }

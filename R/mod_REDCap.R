@@ -96,7 +96,7 @@ redcap_connection <- function(url, token) {
 #' @param rc_con A REDCap API Connection Object
 #' @param rc_field_names The field names for a REDCap instrument
 #' 
-#' @importFrom redcapAPI exportRecords
+#' @importFrom redcapAPI exportRecordsTyped
 #' @importFrom dplyr as_tibble select mutate mutate_all
 #' @importFrom magrittr %>% 
 #' @importFrom purrr flatten_dfr
@@ -108,7 +108,7 @@ redcap_connection <- function(url, token) {
 #' 
 safe_exportRecords <- function(rc_con, rc_field_names) {
   tryCatch({
-    redcapAPI::exportRecords(rc_con, factors = F, labels = F) %>% 
+    redcapAPI::exportRecordsTyped(rc_con, factors = F) %>% 
       dplyr::as_tibble() %>% 
       mutate_all(as.character) %>% 
       mutate_all(replace_na, replace = '')
@@ -657,7 +657,7 @@ redcap_server <- function(id, subject_id) {
       
       observeEvent(redcap_setup$rc_con, {
         message('Retrieving REDCap project information')
-        if (redcap_setup$rc_con %>% class() == 'redcapApiConnection') { ### When correct information is entered, the class of rc_con will be redcapApiConnection
+        if (any(redcap_setup$rc_con %>% class() == 'redcapApiConnection' | redcap_setup$rc_con %>% class() == 'redcapConnection')) { ### When correct information is entered, the class of rc_con will be redcapApiConnection
           shinyjs::hide('redcap_connect_div') ### Hide REDCap connection GUI
           redcap_setup$rc_project_info <- redcapAPI::exportProjectInformation(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store Project Info
           redcap_setup$rc_field_names <- redcapAPI::exportFieldNames(redcap_setup$rc_con) %>% dplyr::as_tibble() ### Store REDCap Field Names
@@ -1230,15 +1230,18 @@ redcap_server <- function(id, subject_id) {
       ## Process Instrument data ----
       ## Process User Entered Data for REDCap Upload
       observeEvent(c(redcap_instrument$data, input$survey_complete), {
+        # browser()
         req(redcap_instrument$selected_instrument_complete_field)
         shinyjs::disable(redcap_setup$identifier_field)
         shinyjs::disable(redcap_setup$reviewer_field)
         req(redcap_instrument$data)
-        redcap_instrument$current_subject_data <- redcap_instrument$selected_instrument_meta %>%
+        redcap_instrument$current_subject_data <-
+          redcap_instrument$selected_instrument_meta %>%
           select(.data$shinyREDCap_widget_function, .data$field_name, .data$select_choices_or_calculations) %>% ## Include select_choices_or_calculations so that all columns can be sent back to REDCap. This allows for overwriting old data with blank ''
           add_row(field_name = redcap_setup$rc_record_id_field) %>% ## Add REDCap record ID field back into the instrument, so it can be joined with any previous data.
           left_join(redcap_instrument$data, by = c('field_name' = 'inputID')) %>% ## Join the instrument inputs with the selected instrument. This ensures inputs are collected only for the active instrument
-          modify_depth(2, as.character) %>% ## the input values are all lists at this moment. Dive into each list (depth = 2) and make sure that the values within the list are coded as characters
+          unnest(.data$current_value, keep_empty = T, ptype = as.character()) %>% 
+          # modify_depth(1, as.character) %>% ## the input values are all lists at this moment. Dive into each list (depth = 2) and make sure that the values within the list are coded as characters
           separate_rows(.data$select_choices_or_calculations, sep = '\\|') %>% ## Expand select_choices_or_calculations
           mutate(select_choices_or_calculations = str_trim(.data$select_choices_or_calculations)) %>% ## Trim
           separate(.data$select_choices_or_calculations, into = c('rc_val','rc_label'), sep = ',') %>% ## Separate
@@ -1308,6 +1311,7 @@ redcap_server <- function(id, subject_id) {
       
       ## Determine Changes ----
       observeEvent(c(redcap_instrument$previous_subject_instrument_formatted_data_labels, redcap_instrument$current_subject_instrument_formatted_data_labels), {
+        # browser()
         req(redcap_instrument$previous_subject_instrument_formatted_data_labels, redcap_instrument$current_subject_instrument_formatted_data_labels)
         ### Combine previous and current data to determine what, if anything, has changed   
         redcap_instrument$data_comparison <- redcap_instrument$previous_subject_instrument_formatted_data_labels %>% 
@@ -1321,25 +1325,34 @@ redcap_server <- function(id, subject_id) {
         redcap_instrument$data_is_different <- nrow(redcap_instrument$data_comparison) > 0
         
         ### Create modal for displaying changes
-        redcap_instrument$overwrite_modal <- redcap_instrument$data_comparison %>% 
+        redcap_instrument$overwrite_modal <-
+          redcap_instrument$data_comparison %>% 
           ungroup() %>% 
           left_join(redcap_instrument$selected_instrument_meta %>% select(.data$field_name, .data$field_label)) %>% 
           select('Question' = .data$field_label, 'Previous Value' = .data$previous_html, 'New Value' = .data$current_html) %>%
           filter(.data$Question != is.na(.data$Question)) %>% ### Remove instrument complete differences from display modal
           dplyr::mutate_at(dplyr::vars(-.data$Question), stringr::str_split, '<br>') %>% 
-          mutate('Previous Value' = purrr::map(.data$`Previous Value`, 
-                                          ~purrr::keep(.x, ~ stringr::str_detect(.x, '') ) 
-                                          ),
-                 'Previous Value' = purrr::map(.data$`Previous Value`,
-                                          ~glue::glue_collapse(.x, sep = '<br><br>')
-                                          ),
-                 'New Value' = purrr::map(.data$`New Value`, 
-                                          ~purrr::keep(.x, ~ stringr::str_detect(.x, '') ) 
-                                          ),
-                 'New Value' = purrr::map(.data$`New Value`,
-                                          ~glue::glue_collapse(.x, sep = '<br><br>')
-                                          )
-                 ) %>% 
+          unnest(contains('Value')) %>% 
+          # mutate('Previous Value' = purrr::map(.data$`Previous Value`, 
+          #                                 ~purrr::keep(.x, ~ stringr::str_detect(.x, '') ) 
+          #                                 ),
+          #        'Previous Value' = purrr::map(.data$`Previous Value`,
+          #                                 ~glue::glue_collapse(.x, sep = '<br><br>')
+          #                                 ),
+          #        'New Value' = purrr::map(.data$`New Value`, 
+          #                                 ~purrr::keep(.x, ~ stringr::str_detect(.x, '') ) 
+          #                                 ),
+          #        'New Value' = purrr::map(.data$`New Value`,
+          #                                 ~glue::glue_collapse(.x, sep = '<br><br>')
+          #                                 )
+          #        ) %>% 
+            mutate('Previous Value' = purrr::map(.data$`Previous Value`,
+                                                 ~glue::glue_collapse(.x, sep = '<br><br>')
+                                                 ),
+                   'New Value' = purrr::map(.data$`New Value`,
+                                            ~glue::glue_collapse(.x, sep = '<br><br>')
+                                            )
+                   ) %>% 
           DT::datatable(
             options = list(scrollX = TRUE,
                            paging = FALSE,
