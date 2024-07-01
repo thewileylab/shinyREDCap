@@ -28,7 +28,4 @@ run_app <- function(
 #' A shiny module to connect you to a REDCap project and perform a chart review from within an R Shiny Application.
 #' 
 #' 
-#' @docType package
-#' @name shinyREDCap
-NULL
-#> NULL
+"_PACKAGE"
