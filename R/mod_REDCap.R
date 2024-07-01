@@ -96,7 +96,7 @@ redcap_connection <- function(url, token) {
 #' @param rc_con A REDCap API Connection Object
 #' @param rc_field_names The field names for a REDCap instrument
 #' 
-#' @importFrom redcapAPI exportRecordsTyped
+#' @importFrom redcapAPI exportRecordsTyped default_cast_character
 #' @importFrom dplyr as_tibble select mutate mutate_all
 #' @importFrom magrittr %>% 
 #' @importFrom purrr flatten_dfr
@@ -108,7 +108,7 @@ redcap_connection <- function(url, token) {
 #' 
 safe_exportRecords <- function(rc_con, rc_field_names) {
   tryCatch({
-    redcapAPI::exportRecordsTyped(rc_con, factors = F) %>% 
+    redcapAPI::exportRecordsTyped(rc_con, cast = redcapAPI::default_cast_character) %>% 
       dplyr::as_tibble() %>% 
       mutate_all(as.character) %>% 
       mutate_all(replace_na, replace = '')
@@ -1240,7 +1240,11 @@ redcap_server <- function(id, subject_id) {
           select(.data$shinyREDCap_widget_function, .data$field_name, .data$select_choices_or_calculations) %>% ## Include select_choices_or_calculations so that all columns can be sent back to REDCap. This allows for overwriting old data with blank ''
           add_row(field_name = redcap_setup$rc_record_id_field) %>% ## Add REDCap record ID field back into the instrument, so it can be joined with any previous data.
           left_join(redcap_instrument$data, by = c('field_name' = 'inputID')) %>% ## Join the instrument inputs with the selected instrument. This ensures inputs are collected only for the active instrument
-          unnest(.data$current_value, keep_empty = T, ptype = as.character()) %>% 
+          mutate(current_value = map(.x = .data$current_value, ~if (inherits(., "Date")) format(., '%Y-%m-%d') else .), 
+                 current_value = map(.x = .data$current_value, ~if (is.integer(.)) as.character(.) else .),
+                 current_value = map(.x = .data$current_value, ~if (is.numeric(.)) as.character(.) else .)
+                 ) %>% 
+          unnest(.data$current_value, keep_empty = T, ptype = character()) %>% 
           # modify_depth(1, as.character) %>% ## the input values are all lists at this moment. Dive into each list (depth = 2) and make sure that the values within the list are coded as characters
           separate_rows(.data$select_choices_or_calculations, sep = '\\|') %>% ## Expand select_choices_or_calculations
           mutate(select_choices_or_calculations = str_trim(.data$select_choices_or_calculations)) %>% ## Trim
